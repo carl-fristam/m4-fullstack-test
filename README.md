@@ -1,68 +1,44 @@
-# M4 Fullstack Starter
-
-A lightweight, professional boilerplate built for M4 Macs. This project connects a **Python (Flask)** API with a **React (Vite)** frontend, designed to run entirely in user-space without admin rights.
-
----
-
 ## Project Structure
 
 ```text
-M4-Fullstack/
-├── backend/            # Flask API & Python Logic
-│   ├── app.py
-│   ├── requirements.txt
-│   └── venv/           # Python Virtual Environment
-├── frontend/           # React + Vite UI
+.
+├── backend/            # FastAPI (Running in Docker)
+│   ├── main.py
+│   ├── db_config.py
+│   └── Dockerfile
+├── frontend/           # React + Vite (Running locally)
 │   ├── src/
+│   ├── index.html
 │   └── package.json
-├── start_all.sh        # One-click launch script
-└── .gitignore          # Keeps the repo clean
+├── docker-compose.yml  # Manages Backend & MongoDB
+└── requirements.txt    # Python Dependencies
 
 ```
 
 ---
 
-## Quick Start (Automated)
+## Technical Stack
 
-The easiest way to get the app running is to use the provided shell script:
-
-1. **Clone the Repo:**
-```bash
-git clone [https://github.com/carl-fristam/m4-fullstack-test.git](https://github.com/carl-fristam/m4-fullstack-test.git)
-cd m4-fullstack-test
-
-```
-
-
-2. **Run the Script:**
-```bash
-chmod +x start_all.sh
-zsh start_all.sh
-
-```
-
-
-* **Frontend:** [http://localhost:5173](https://www.google.com/search?q=http://localhost:5173)
-* **Backend API:** [http://localhost:5000](https://www.google.com/search?q=http://localhost:5000)
+* **Frontend:** React, Tailwind CSS
+* **Backend:** FastAPI
+* **Database:** MongoDB (Containerized)
 
 ---
 
-## Manual Setup (Step-by-Step)
+## Launch Instructions
 
-If you need to install dependencies for the first time or run servers separately:
+### 1. Start Database and API
 
-### 1. Backend Setup (Python)
+The backend and MongoDB must run inside Docker to communicate correctly.
 
 ```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python3 app.py
+docker-compose up --build
 
 ```
 
-### 2. Frontend Setup (React)
+### 2. Start Frontend
+
+Run the React development server from your local machine.
 
 ```bash
 cd frontend
@@ -71,36 +47,40 @@ npm run dev
 
 ```
 
+### 3. Access
+
+* **Frontend:** http://localhost:5173
+* **Backend API:** http://localhost:8000
+
 ---
 
-## API Endpoints
+## API Documentation
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` | `/` | Base Health Check |
-| `GET` | `/api/data` | Returns JSON data to the React UI |
+| `GET` | `/` | System Heartbeat |
+| `GET` | `/tasks` | Retrieve all tasks from MongoDB |
+| `POST` | `/tasks` | Create a new task |
+| `DELETE` | `/tasks/{task_id}` | Remove a task |
 
 ---
 
-## Stopping the App
+## System Commands
 
-The backend runs as a background process to allow a single terminal window to handle both servers. To stop it:
+**Stop Backend:**
+`Ctrl + C` in the Docker terminal, or `docker-compose down`.
 
-1. **Frontend:** Press `Ctrl + C` in the terminal.
-2. **Backend:** Run the following command:
+**Wipe Database:**
+
 ```bash
-pkill -f app.py
+docker-compose down -v
 
 ```
 
+**Update Backend Dependencies:**
+If you change `requirements.txt`, you must rebuild:
 
-
----
-
-## Roadmap
-
-* [ ] Add **SQLite** for data persistence.
-* [ ] Implement a `POST` route to save user input.
-* [ ] Add `.env` support for secret keys.
+```bash
+docker-compose up --build
 
 ```
