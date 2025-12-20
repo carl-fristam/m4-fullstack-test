@@ -1,3 +1,5 @@
+# Small test project (fullstack)
+
 ## Project Structure
 
 ```text
