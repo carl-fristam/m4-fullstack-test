@@ -4,15 +4,18 @@
 
 ```text
 .
-├── backend/            # FastAPI (Running in Docker)
-│   ├── main.py
-│   ├── db_config.py
+├── backend/            # FastAPI (Containerized)
+│   ├── main.py         # Routes and Pydantic models
+│   ├── db_config.py    # Mongo connection logic
+│   ├── auth.py         # JWT and Bcrypt logic
 │   └── Dockerfile
-├── frontend/           # React + Vite (Running locally)
+├── frontend/           # React + Vite (Containerized)
 │   ├── src/
-│   ├── index.html
-│   └── package.json
-├── docker-compose.yml  # Manages Backend & MongoDB
+│   │   ├── components/
+│   │   │   └── Login.jsx
+│   │   └── App.jsx
+│   └── Dockerfile      # Multi-stage build for React
+├── docker-compose.yml  # Orchestrates all services
 └── requirements.txt    # Python Dependencies
 
 ```
@@ -22,67 +25,82 @@
 ## Technical Stack
 
 * **Frontend:** React, Tailwind CSS
-* **Backend:** FastAPI
-* **Database:** MongoDB (Containerized)
+* **Backend:** FastAPI (Python)
+* **Database:** MongoDB
+* **Management:** Docker & Docker Compose
 
 ---
 
 ## Launch Instructions
 
-### 1. Start Database and API
+### 1. Initialize Stack
 
-The backend and MongoDB must run inside Docker to communicate correctly.
+This command builds the images for both the React frontend and FastAPI backend, then starts the MongoDB instance.
 
 ```bash
 docker-compose up --build
 
 ```
 
-### 2. Start Frontend
+### 2. Networking Logic
 
-Run the React development server from your local machine.
+Because all services are in Docker, they communicate using the service names defined in `docker-compose.yml`:
 
-```bash
-cd frontend
-npm install
-npm run dev
+* **React to FastAPI:** Uses `http://backend:8000` (internal) or `http://localhost:8000` (from browser).
+* **FastAPI to Mongo:** Uses `mongodb://mongo:27017`.
 
-```
+---
 
-### 3. Access
+## Access Points
 
-* **Frontend:** http://localhost:5173
-* **Backend API:** http://localhost:8000
+* **Production UI:** [http://localhost:5173](https://www.google.com/search?q=http://localhost:5173)
+* **API Root:** [http://localhost:8000](https://www.google.com/search?q=http://localhost:8000)
+* **API Docs (Swagger):** [http://localhost:8000/docs](https://www.google.com/search?q=http://localhost:8000/docs)
+* **Database UI:** [http://localhost:8081](https://www.google.com/search?q=http://localhost:8081)
 
 ---
 
 ## API Documentation
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `GET` | `/` | System Heartbeat |
-| `GET` | `/tasks` | Retrieve all tasks from MongoDB |
-| `POST` | `/tasks` | Create a new task |
-| `DELETE` | `/tasks/{task_id}` | Remove a task |
+| Method | Endpoint | Auth | Description |
+| --- | --- | --- | --- |
+| `GET` | `/` | No | Heartbeat Check |
+| `POST` | `/register` | No | Register User |
+| `POST` | `/login` | No | Get JWT Token |
+| `GET` | `/tasks` | **JWT** | Fetch All Tasks |
+| `POST` | `/tasks` | **JWT** | Create Task |
+| `DELETE` | `/tasks/{id}` | **JWT** | Delete Task |
 
 ---
 
 ## System Commands
 
-**Stop Backend:**
-`Ctrl + C` in the Docker terminal, or `docker-compose down`.
+**Monitor All Traffic:** View live logs from the frontend, backend, and database simultaneously:
 
-**Wipe Database:**
+```bash
+docker-compose logs -f
+
+```
+
+**Access Backend Shell:** If you need to run migrations or manual scripts inside the container:
+
+```bash
+docker-compose exec backend bash
+
+```
+
+**Database Cleanup:** Stop the stack and wipe all stored users and tasks:
 
 ```bash
 docker-compose down -v
 
 ```
 
-**Update Backend Dependencies:**
-If you change `requirements.txt`, you must rebuild:
+**Rebuild Specific Service:** If you only changed the React code or the FastAPI models:
 
 ```bash
-docker-compose up --build
+docker-compose up --build frontend
+# or
+docker-compose up --build backend
 
 ```
