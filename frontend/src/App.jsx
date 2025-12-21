@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Login from './components/Login';
 
 const API_URL = "http://localhost:8000/tasks";
 
@@ -8,6 +9,14 @@ export default function App() {
   const [desc, setDesc] = useState("");
   const [loading, setLoading] = useState(false);
   const [online, setOnline] = useState(false);
+  const [token, setToken] = useState(localStorage.getItem("token"));
+
+  /* ---------- AUTH LOGIC ---------- */
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setToken(null);
+    setTasks([]);
+  };
 
   /* ---------- API STATUS ---------- */
   useEffect(() => {
@@ -24,43 +33,70 @@ export default function App() {
     return () => clearInterval(i);
   }, []);
 
-  /* ---------- DATA ---------- */
+  /* ---------- DATA (WITH HEADERS) ---------- */
   const loadTasks = async () => {
+    if (!token) return;
     try {
-      const res = await fetch(API_URL);
-      if (res.ok) setTasks(await res.json());
+      const res = await fetch(API_URL, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.status === 401) {
+        handleLogout();
+      } else if (res.ok) {
+        setTasks(await res.json());
+      }
     } catch (err) {
       console.error("Failed to load tasks:", err);
     }
   };
 
   useEffect(() => {
-    loadTasks();
-  }, []);
+    if (token) loadTasks();
+  }, [token]);
 
   const createTask = async (e) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || !token) return;
     setLoading(true);
-    await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, description: desc, priority: 1 }),
-    });
-    setTitle("");
-    setDesc("");
-    setLoading(false);
-    loadTasks();
+    try {
+      await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ title, description: desc, priority: 1 }),
+      });
+      setTitle("");
+      setDesc("");
+      loadTasks();
+    } catch (err) {
+      console.error("Create task error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const removeTask = async (id) => {
-    await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-    loadTasks();
+    if (!token) return;
+    try {
+      await fetch(`${API_URL}/${id}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      loadTasks();
+    } catch (err) {
+      console.error("Remove task error:", err);
+    }
   };
+
+  /* ---------- RENDER GATEKEEPER ---------- */
+  if (!token) {
+    return <Login onLoginSuccess={() => setToken(localStorage.getItem("token"))} />;
+  }
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans antialiased flex flex-col items-center">
-      {/* FORCE CENTERING CSS */}
       <style>{`
       body { margin: 0; padding: 0; background: white; }
       #root { width: 100%; display: flex; justify-content: center; }
@@ -79,27 +115,34 @@ export default function App() {
             </div>
           </div>
 
-          <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-bold tracking-widest border ${online ? "bg-emerald-50 border-emerald-100 text-emerald-600" : "bg-rose-50 border-rose-100 text-rose-600"}`}>
-            <span className={`w-2 h-2 rounded-full ${online ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
-            {online ? "System Operational" : "System Offline"}
+          <div className="flex items-center gap-4">
+            <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-bold tracking-widest border ${online ? "bg-emerald-50 border-emerald-100 text-emerald-600" : "bg-rose-50 border-rose-100 text-rose-600"}`}>
+              <span className={`w-2 h-2 rounded-full ${online ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
+              {online ? "System Operational" : "System Offline"}
+            </div>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-1.5 bg-slate-900 text-white text-[11px] font-bold rounded-full hover:bg-slate-700 transition-colors"
+            >
+              LOGOUT
+            </button>
           </div>
         </div>
       </nav>
 
-      {/* ---------- HERO SECTION (CENTERED CONTENT) ---------- */}
+      {/* ---------- HERO SECTION ---------- */}
       <header className="w-full pt-48 pb-20 px-6 bg-gradient-to-b from-indigo-50/50 to-white flex flex-col items-center text-center">
         <div className="max-w-4xl">
           <h1 className="text-5xl md:text-6xl font-black text-slate-900 tracking-tight mb-6">
             Work faster with <span className="text-indigo-600">Autonomous</span> Tasks.
           </h1>
           <p className="text-xl text-slate-500 mb-10 leading-relaxed max-w-2xl mx-auto">
-            The next generation of task management. Connect your agents,
-            automate your workflow, and monitor everything in one clean place.
+            Logged in as User. Managing your automated processing pipeline.
           </p>
         </div>
       </header>
 
-      {/* ---------- MAIN CONTROL PANEL (CENTERED GRID) ---------- */}
+      {/* ---------- MAIN CONTROL PANEL ---------- */}
       <main className="w-full max-w-6xl px-6 py-20 mx-auto">
         <div className="grid lg:grid-cols-3 gap-12 items-start justify-center">
 
@@ -203,7 +246,6 @@ export default function App() {
               )}
             </div>
           </div>
-
         </div>
       </main>
 
