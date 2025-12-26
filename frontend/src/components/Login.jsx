@@ -52,9 +52,6 @@ const Login = ({ onLoginSuccess }) => {
                     <h2 className="text-2xl font-bold tracking-tight text-[#003253] text-center">
                         {isRegistering ? "Create Account" : "Access Portal"}
                     </h2>
-                    <p className="text-slate-500 text-sm mt-2 text-center">
-                        {isRegistering ? "Join the Master Thesis network" : "Internal Request System"}
-                    </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
@@ -94,7 +91,7 @@ const Login = ({ onLoginSuccess }) => {
                     <button
                         type="button"
                         onClick={() => setIsRegistering(!isRegistering)}
-                        className="text-sm font-bold text-[#E40000] hover:text-red-800 transition-colors"
+                        className="text-sm text-[#828282] transition-colors"
                     >
                         {isRegistering ? "Already have an account? Login" : "Need access? Create an account"}
                     </button>

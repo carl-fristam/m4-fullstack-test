@@ -6,19 +6,8 @@ import os
 MONGO_DETAILS = os.getenv("MONGO_DETAILS", "mongodb://localhost:27017")
 
 client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_DETAILS)
+database = client.research_db
 
-# This creates a database named 'agent_db' and a collection named 'tasks'
-database = client.agent_db
-task_collection = database.get_collection("tasks")
-
-# Helper function: MongoDB uses '_id' (an ObjectId), but React prefers 'id' (a string)
-def task_helper(task) -> dict:
-    return {
-        "id": str(task["_id"]),
-        "title": task["title"],
-        "description": task["description"],
-        "priority": task["priority"],
-    }
 # Collection for saved research results
 saved_results_collection = database.get_collection("saved_research")
 chat_collection = database.get_collection("chat_sessions")
@@ -39,5 +28,6 @@ def chat_helper(chat) -> dict:
         "id": str(chat["_id"]),
         "title": chat.get("title", "New Chat"),
         "created_at": chat.get("created_at"),
-        "last_message": chat.get("last_message", "")
+        "last_message": chat.get("last_message", ""),
+        "results": chat.get("results", [])
     }

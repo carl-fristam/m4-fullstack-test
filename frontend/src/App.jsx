@@ -3,57 +3,40 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import ExaShowcase from './components/ExaShowcase';
+import Header from './components/Header';
 
-const API_URL = "http://localhost:8000/tasks";
+
+
+const getUsernameFromToken = (token) => {
+  if (!token) return null;
+  try {
+    const base64url = token.split('.')[1];
+    const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload =
+      decodeURIComponent(atob(base64).split('').map(function (c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+    return JSON.parse(jsonPayload).sub;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+};
 
 export default function App() {
-  const [tasks, setTasks] = useState([]);
+
   const [loading, setLoading] = useState(false); // Kept for consistency if needed by global spinners, though mainly used in Dashboard now
-  const [online, setOnline] = useState(false);
   const [token, setToken] = useState(localStorage.getItem("token"));
+  const username = getUsernameFromToken(token);
 
   /* ---------- AUTH LOGIC ---------- */
   const handleLogout = () => {
     localStorage.removeItem("token");
     setToken(null);
-    setTasks([]);
+
   };
 
-  /* ---------- API STATUS ---------- */
-  useEffect(() => {
-    const ping = async () => {
-      try {
-        const res = await fetch("http://localhost:8000/");
-        setOnline(res.ok);
-      } catch {
-        setOnline(false);
-      }
-    };
-    ping();
-    const i = setInterval(ping, 5000);
-    return () => clearInterval(i);
-  }, []);
 
-  /* ---------- DATA (WITH HEADERS) ---------- */
-  const loadTasks = async () => {
-    if (!token) return;
-    try {
-      const res = await fetch(API_URL, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.status === 401) {
-        handleLogout();
-      } else if (res.ok) {
-        setTasks(await res.json());
-      }
-    } catch (err) {
-      console.error("Failed to load tasks:", err);
-    }
-  };
-
-  useEffect(() => {
-    if (token) loadTasks();
-  }, [token]);
 
 
   /* ---------- RENDER GATEKEEPER ---------- */
@@ -64,17 +47,15 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased">
       <BrowserRouter>
+        {token && <Header username={username} handleLogout={handleLogout} />}
         <Routes>
           <Route
             path="/"
             element={
               <Dashboard
-                tasks={tasks}
-                setTasks={setTasks}
                 token={token}
                 handleLogout={handleLogout}
-                loadTasks={loadTasks}
-                online={online}
+                username={username}
               />
             }
           />
@@ -83,8 +64,8 @@ export default function App() {
             element={
               <ExaShowcase
                 token={token}
-                online={online}
                 handleLogout={handleLogout}
+                username={username}
               />
             }
           />
