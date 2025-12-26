@@ -19,3 +19,25 @@ def task_helper(task) -> dict:
         "description": task["description"],
         "priority": task["priority"],
     }
+# Collection for saved research results
+saved_results_collection = database.get_collection("saved_research")
+chat_collection = database.get_collection("chat_sessions")
+
+def result_helper(result) -> dict:
+    return {
+        "id": str(result["_id"]),
+        "title": result.get("title"),
+        "url": result.get("url"),
+        "text": result.get("text"), 
+        "saved_at": result.get("saved_at"),
+        "tags": result.get("tags", []),
+        "is_favorite": result.get("is_favorite", False)
+    }
+
+def chat_helper(chat) -> dict:
+    return {
+        "id": str(chat["_id"]),
+        "title": chat.get("title", "New Chat"),
+        "created_at": chat.get("created_at"),
+        "last_message": chat.get("last_message", "")
+    }

@@ -39,3 +39,4 @@ tzdata==2025.3
 unicorn==2.1.4
 uvicorn==0.38.0
 Werkzeug==3.1.4
+exa_py
