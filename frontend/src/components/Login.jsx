@@ -16,7 +16,7 @@ const Login = ({ onLoginSuccess }) => {
         const endpoint = isRegistering ? "register" : "login";
 
         try {
-            const response = await fetch(`http://localhost:8000/${endpoint}`, {
+            const response = await fetch(`http://192.168.0.41:8000/${endpoint}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password }),
@@ -83,7 +83,7 @@ const Login = ({ onLoginSuccess }) => {
                         type="submit"
                         className="w-full py-3 font-bold bg-[#003253] text-white hover:bg-[#002842] transition-all uppercase tracking-wider text-sm"
                     >
-                        {isRegistering ? "Create Account" : "Secure Login"}
+                        {isRegistering ? "Create Account" : "Login"}
                     </button>
                 </form>
 

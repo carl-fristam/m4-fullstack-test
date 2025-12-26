@@ -19,7 +19,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
 
     const loadChats = async (autoSelectId = null) => {
         try {
-            const res = await fetch("http://localhost:8000/chats", {
+            const res = await fetch("http://192.168.0.41:8000/chats", {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {
@@ -47,7 +47,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
     const deleteChat = async (e, id) => {
         e.stopPropagation();
         if (!confirm("Delete this chat?")) return;
-        await fetch(`http://localhost:8000/chats/${id}`, {
+        await fetch(`http://192.168.0.41:8000/chats/${id}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` }
         });
@@ -81,7 +81,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
         let activeChatId = forceChatId || currentChatId;
         if (!activeChatId) {
             try {
-                const chatRes = await fetch("http://localhost:8000/chats", {
+                const chatRes = await fetch("http://192.168.0.41:8000/chats", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -98,7 +98,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
         }
 
         try {
-            const url = new URL("http://localhost:8000/exa-search");
+            const url = new URL("http://192.168.0.41:8000/exa-search");
             url.searchParams.append("query", searchTarget);
 
             const res = await fetch(url, {
@@ -118,7 +118,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
 
             // Persist results to chat session
             if (activeChatId) {
-                await fetch(`http://localhost:8000/chats/${activeChatId}/results`, {
+                await fetch(`http://192.168.0.41:8000/chats/${activeChatId}/results`, {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json",
@@ -150,7 +150,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
         try {
             if (item.savedId) {
                 // DELETE (Undo)
-                const res = await fetch(`http://localhost:8000/saved-results/${item.savedId}`, {
+                const res = await fetch(`http://192.168.0.41:8000/saved-results/${item.savedId}`, {
                     method: "DELETE",
                     headers: { "Authorization": `Bearer ${token}` }
                 });
@@ -166,7 +166,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
                     saved_at: new Date().toISOString()
                 };
 
-                const res = await fetch("http://localhost:8000/saved-results", {
+                const res = await fetch("http://192.168.0.41:8000/saved-results", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",

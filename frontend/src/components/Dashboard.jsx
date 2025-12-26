@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-const API_URL = "http://localhost:8000/saved-results";
+const API_URL = "http://192.168.0.41:8000/saved-results";
 
 export default function Dashboard({ token, handleLogout, username }) {
     const [sources, setSources] = useState([]);
