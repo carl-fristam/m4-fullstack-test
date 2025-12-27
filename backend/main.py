@@ -32,11 +32,13 @@ class SavedResult(BaseModel):
     saved_at: str | None = None
     tags: list[str] = []
     is_favorite: bool = False
+    note: str | None = None
     user_id: str | None = None
 
 class SourceUpdate(BaseModel):
     tags: list[str] | None = None
     is_favorite: bool | None = None
+    note: str | None = None
 
 class ChatSession(BaseModel):
     title: str

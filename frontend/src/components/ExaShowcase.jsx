@@ -46,7 +46,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
 
     const deleteChat = async (e, id) => {
         e.stopPropagation();
-        if (!confirm("Delete this chat?")) return;
+        e.stopPropagation();
         await fetch(`http://192.168.0.41:8000/chats/${id}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` }
@@ -135,27 +135,40 @@ export default function ExaShowcase({ token, handleLogout, username }) {
         }
     };
 
-    const saveResult = async (item, idx) => {
+    const [savedItems, setSavedItems] = useState([]);
+
+    useEffect(() => {
+        if (token) {
+            fetchSavedItems();
+        }
+    }, [token]);
+
+    const fetchSavedItems = async () => {
+        try {
+            const res = await fetch("http://192.168.0.41:8000/saved-results", {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setSavedItems(data);
+            }
+        } catch (err) {
+            console.error("Failed to load saved items", err);
+        }
+    };
+
+    const toggleSave = async (item, savedItem) => {
         if (!token) return;
 
-        // Optimistic UI Update helper
-        const updateLocalState = (savedId) => {
-            if (results && results.results) {
-                const newResults = [...results.results];
-                newResults[idx] = { ...newResults[idx], savedId: savedId };
-                setResults({ ...results, results: newResults });
-            }
-        };
-
         try {
-            if (item.savedId) {
-                // DELETE (Undo)
-                const res = await fetch(`http://192.168.0.41:8000/saved-results/${item.savedId}`, {
+            if (savedItem) {
+                // DELETE (Undo Save)
+                const res = await fetch(`http://192.168.0.41:8000/saved-results/${savedItem.id}`, {
                     method: "DELETE",
                     headers: { "Authorization": `Bearer ${token}` }
                 });
                 if (res.ok) {
-                    updateLocalState(null);
+                    setSavedItems(prev => prev.filter(s => s.id !== savedItem.id));
                 }
             } else {
                 // SAVE
@@ -163,7 +176,8 @@ export default function ExaShowcase({ token, handleLogout, username }) {
                     title: item.title,
                     url: item.url,
                     text: item.text,
-                    saved_at: new Date().toISOString()
+                    saved_at: new Date().toISOString(),
+                    is_favorite: false // Default to false when just saving
                 };
 
                 const res = await fetch("http://192.168.0.41:8000/saved-results", {
@@ -177,7 +191,58 @@ export default function ExaShowcase({ token, handleLogout, username }) {
 
                 if (res.ok) {
                     const data = await res.json();
-                    updateLocalState(data.id);
+                    setSavedItems(prev => [...prev, { ...payload, ...data }]);
+                }
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleStarClick = async (item, savedItem) => {
+        if (!token) return;
+
+        try {
+            if (savedItem) {
+                // ALREADY SAVED -> TOGGLE FAVORITE
+                const update = { is_favorite: !savedItem.is_favorite };
+                const res = await fetch(`http://192.168.0.41:8000/saved-results/${savedItem.id}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify(update)
+                });
+
+                if (res.ok) {
+                    // Update local state
+                    setSavedItems(prev => prev.map(s =>
+                        s.id === savedItem.id ? { ...s, is_favorite: !s.is_favorite } : s
+                    ));
+                }
+            } else {
+                // NOT SAVED -> SAVE AND FAVORITE
+                const payload = {
+                    title: item.title,
+                    url: item.url,
+                    text: item.text,
+                    saved_at: new Date().toISOString(),
+                    is_favorite: true // Set to true immediately
+                };
+
+                const res = await fetch("http://192.168.0.41:8000/saved-results", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    setSavedItems(prev => [...prev, { ...payload, ...data }]);
                 }
             }
         } catch (err) {
@@ -205,11 +270,11 @@ export default function ExaShowcase({ token, handleLogout, username }) {
         <div className="flex flex-col h-screen bg-slate-50 font-sans overflow-hidden pt-20">
             <div className="flex flex-1 overflow-hidden">
                 {/* SIDEBAR */}
-                <aside className="w-64 bg-slate-100 border-r border-slate-200 flex flex-col pt-4">
+                <aside className="w-64 bg-slate-50 flex flex-col pt-4">
                     <div className="p-4">
                         <button
                             onClick={createNewChat}
-                            className="w-full py-3 bg-[#003253] text-white font-bold uppercase tracking-wider text-xs hover:bg-[#002842] transition-colors flex items-center justify-center gap-2 rounded-full"
+                            className="w-full py-3 bg-slate-900 text-white font-bold uppercase tracking-wider text-xs hover:bg-black transition-colors flex items-center justify-center gap-2 rounded-full shadow-sm"
                         >
                             <span>+</span> New Chat
                         </button>
@@ -222,14 +287,14 @@ export default function ExaShowcase({ token, handleLogout, username }) {
                             <div
                                 key={chat.id}
                                 onClick={() => selectChat(chat)}
-                                className={`group relative p-3 rounded-lg text-sm cursor-pointer transition-colors border ${currentChatId === chat.id ? "bg-white border-slate-300 shadow-sm" : "border-transparent hover:bg-slate-200"}`}
+                                className={`group relative p-3 rounded-lg text-sm cursor-pointer transition-all ${currentChatId === chat.id ? "bg-white ring-1 ring-slate-200 shadow-sm" : "hover:bg-slate-200/50"}`}
                             >
-                                <div className="font-medium text-[#003253] truncate pr-6">{chat.title}</div>
+                                <div className={`font-medium truncate pr-6 ${currentChatId === chat.id ? "text-slate-900" : "text-slate-600"}`}>{chat.title}</div>
                                 <div className="text-[10px] text-slate-400 mt-1 truncate">{new Date(chat.created_at).toLocaleString() || "Just now"}</div>
 
                                 <button
                                     onClick={(e) => deleteChat(e, chat.id)}
-                                    className="absolute right-2 top-3 text-slate-300 hover:text-[#E40000] opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="absolute right-2 top-3 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
                                     ✕
                                 </button>
@@ -239,18 +304,14 @@ export default function ExaShowcase({ token, handleLogout, username }) {
                 </aside>
 
                 <main className={`flex-1 overflow-y-auto bg-slate-50 relative pt-10 transition-all duration-300 ${previewUrl ? "pb-[50vh]" : ""}`}>
-                    <div className="max-w-4xl mx-auto px-6 py-12">
+                    <div className="max-w-7xl mx-auto px-6 py-12">
                         <div className="text-center mb-12">
-                            <h1 className="text-3xl font-bold text-[#003253] mb-4">
+                            <h1 className="text-3xl font-bold text-slate-900 mb-4">
                                 {currentChatId ? "Active Session" : "New Research Session"}
                             </h1>
-                            <p className="text-slate-500 mb-8">
-                                AI-powered academic search engine.
-                            </p>
-
                             <form onSubmit={fetchResults} className="max-w-2xl mx-auto flex gap-2">
                                 <input
-                                    className="flex-1 px-5 py-4 bg-white border border-slate-300 focus:border-[#003253] outline-none text-[#003253] text-lg shadow-sm rounded-full"
+                                    className="flex-1 px-5 py-4 bg-white border border-slate-200 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none text-slate-900 text-lg shadow-sm rounded-full transition-all"
                                     placeholder="Enter research query..."
                                     value={query}
                                     onChange={(e) => setQuery(e.target.value)}
@@ -259,7 +320,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="px-8 bg-[#003253] text-white font-bold uppercase tracking-wider text-sm hover:bg-[#002842] disabled:bg-slate-300 transition-colors rounded-full"
+                                    className="px-8 bg-slate-900 text-white font-bold uppercase tracking-wider text-sm hover:bg-black disabled:bg-slate-300 transition-colors rounded-full shadow-md"
                                 >
                                     {loading ? "..." : "Search"}
                                 </button>
@@ -268,7 +329,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
 
                         {loading && (
                             <div className="flex flex-col items-center justify-center py-10">
-                                <div className="w-10 h-10 border-4 border-slate-200 border-t-[#003253] rounded-full animate-spin mb-4"></div>
+                                <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin mb-4"></div>
                                 <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Processing...</p>
                             </div>
                         )}
@@ -282,41 +343,62 @@ export default function ExaShowcase({ token, handleLogout, username }) {
                         {/* RESULTS GRID */}
                         {results && (
                             <div className="space-y-4 pb-20">
-                                {results.results && results.results.map((item, idx) => (
-                                    <div
-                                        key={idx}
-                                        onClick={(e) => openPreview(e, item.url, item.text)}
-                                        className={`bg-white p-6 border shadow-sm transition-all group rounded-xl cursor-pointer ${previewUrl === item.url ? "border-[#003253] ring-1 ring-[#003253]" : "border-slate-200 hover:border-[#003253]"}`}
-                                    >
-                                        <div className="flex items-start justify-between gap-4 mb-3">
-                                            <h2 className="text-lg font-bold text-[#003253] leading-tight group-hover:text-[#004870] transition-colors">
-                                                <span className="hover:underline">
-                                                    {item.title || "Untitled Result"}
-                                                </span>
-                                            </h2>
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        saveResult(item, idx);
-                                                    }}
-                                                    className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors rounded-full ${item.savedId
-                                                        ? "bg-emerald-100 text-emerald-600 hover:bg-[#E40000] hover:text-white"
-                                                        : "bg-slate-100 hover:bg-[#003253] hover:text-white text-slate-600"
-                                                        }`}
-                                                >
-                                                    {item.savedId ? "Saved" : "Save"}
-                                                </button>
+                                {results.results && results.results.map((item, idx) => {
+                                    // Check if item is already saved by matching URL
+                                    // savedItems comes from our new state
+                                    const savedItem = savedItems.find(s => s.url === item.url);
+                                    const isSaved = !!savedItem;
+                                    const isFav = savedItem?.is_favorite;
+
+                                    return (
+                                        <div
+                                            key={idx}
+                                            onClick={(e) => openPreview(e, item.url, item.text)}
+                                            className={`bg-white p-4 border shadow-sm transition-all group rounded-xl cursor-pointer ${previewUrl === item.url ? "border-slate-900 ring-1 ring-slate-900" : "border-slate-200 hover:border-slate-400"}`}
+                                        >
+                                            <div className="flex items-start justify-between gap-4 mb-2">
+                                                <h2 className="text-base font-bold text-slate-800 leading-tight group-hover:text-black transition-colors">
+                                                    <span className="hover:underline">
+                                                        {item.title || "Untitled Result"}
+                                                    </span>
+                                                </h2>
+                                                <div className="flex items-center gap-2">
+                                                    {/* STAR BUTTON */}
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleStarClick(item, savedItem);
+                                                        }}
+                                                        className={`text-xl transition-colors ${isFav ? "text-amber-400 hover:text-amber-500" : "text-slate-200 hover:text-amber-400"}`}
+                                                        title={isFav ? "Remove from favorites" : "Add to favorites"}
+                                                    >
+                                                        ★
+                                                    </button>
+
+                                                    {/* SAVE BUTTON */}
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleSave(item, savedItem);
+                                                        }}
+                                                        className={`px-2 py-1 text-[9px] font-bold uppercase tracking-widest transition-colors rounded-full ${isSaved
+                                                            ? "bg-emerald-100 text-emerald-600 hover:bg-emerald-200"
+                                                            : "bg-slate-100 hover:bg-slate-900 hover:text-white text-slate-500"
+                                                            }`}
+                                                    >
+                                                        {isSaved ? "SAVED" : "Save"}
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <p className="text-slate-400 text-[10px] font-mono mb-2 truncate">{item.url}</p>
+
+                                            <div className="text-slate-600 text-xs leading-relaxed mb-1 line-clamp-4">
+                                                {item.text || <span className="italic opacity-50">No preview available.</span>}
                                             </div>
                                         </div>
-
-                                        <p className="text-slate-400 text-xs font-mono mb-4 truncate">{item.url}</p>
-
-                                        <div className="text-slate-600 text-sm leading-relaxed mb-4 line-clamp-4">
-                                            {item.text || <span className="italic opacity-50">No preview available.</span>}
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
@@ -330,19 +412,19 @@ export default function ExaShowcase({ token, handleLogout, username }) {
                                 <div className="flex rounded-md bg-white border border-slate-300 overflow-hidden shrink-0">
                                     <button
                                         onClick={() => setPreviewMode("web")}
-                                        className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${previewMode === "web" ? "bg-[#003253] text-white" : "text-slate-500 hover:bg-slate-50"}`}
+                                        className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${previewMode === "web" ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-50"}`}
                                     >
                                         Website
                                     </button>
                                     <button
                                         onClick={() => setPreviewMode("text")}
-                                        className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${previewMode === "text" ? "bg-[#003253] text-white" : "text-slate-500 hover:bg-slate-50"}`}
+                                        className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${previewMode === "text" ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-50"}`}
                                     >
                                         Reader Mode
                                     </button>
                                 </div>
 
-                                <a href={previewUrl} target="_blank" rel="noreferrer" className="text-xs font-mono text-[#003253] hover:underline truncate flex-1 min-w-0">
+                                <a href={previewUrl} target="_blank" rel="noreferrer" className="text-xs font-mono text-slate-900 hover:text-slate-600 hover:underline truncate flex-1 min-w-0">
                                     {previewUrl} <span className="text-[10px] text-slate-400 italic ml-2 opacity-50 font-sans normal-case">(Click to open in new tab if blocked)</span>
                                 </a>
                             </div>
@@ -360,7 +442,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
                             />
                         ) : (
                             <div className="w-full flex-1 bg-white overflow-y-auto p-12 max-w-4xl mx-auto">
-                                <h2 className="text-2xl font-bold text-[#003253] mb-6">Text Content Preview</h2>
+                                <h2 className="text-2xl font-bold text-slate-900 mb-6">Text Content Preview</h2>
                                 <div className="prose prose-slate max-w-none text-slate-700 leading-relaxed whitespace-pre-wrap">
                                     {previewText || <span className="italic text-slate-400">No text content available for this result. Try opening the website directly.</span>}
                                 </div>

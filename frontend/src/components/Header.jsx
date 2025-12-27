@@ -2,13 +2,13 @@ import React from "react";
 import { Link, NavLink } from "react-router-dom";
 export default function Header({ username, handleLogout }) {
     return (
-        <nav className="fixed top-0 w-full z-50 bg-[#003253] border-b border-[#002842] flex justify-center text-white h-20">
+        <nav className="fixed top-0 w-full z-50 bg-slate-50/90 backdrop-blur-sm flex justify-center text-slate-800 h-16">
             <div className="w-full max-w-7xl px-6 grid grid-cols-3 items-center">
 
                 {/* LEFT: TITLE */}
                 <div className="flex items-center justify-start gap-8">
-                    <Link to="/" className="flex items-center gap-3 cursor-pointer no-underline text-white">
-                        <span className="font-bold tracking-tight text-xl">MSc Research Tool</span>
+                    <Link to="/" className="flex items-center gap-3 cursor-pointer no-underline text-slate-900 group">
+                        <span className="font-bold tracking-tight text-xl group-hover:opacity-80 transition-opacity">MSc Research Tool</span>
                     </Link>
                 </div>
 
@@ -18,7 +18,7 @@ export default function Header({ username, handleLogout }) {
                     <NavLink
                         to="/"
                         className={({ isActive }) =>
-                            `text-sm font-bold no-underline transition-colors ${isActive ? "text-white border-b-2 border-white pb-1" : "text-slate-300 hover:text-white"}`
+                            `text-sm font-medium no-underline transition-all ${isActive ? "text-slate-900 relative after:absolute after:-bottom-5 after:left-0 after:w-full after:h-0.5 after:bg-slate-900" : "text-slate-500 hover:text-slate-900"}`
                         }
                     >
                         Knowledge Base
@@ -27,7 +27,7 @@ export default function Header({ username, handleLogout }) {
                     <NavLink
                         to="/exa-showcase"
                         className={({ isActive }) =>
-                            `text-sm font-bold no-underline transition-colors ${isActive ? "text-white border-b-2 border-white pb-1" : "text-slate-300 hover:text-white"}`
+                            `text-sm font-medium no-underline transition-all ${isActive ? "text-slate-900 relative after:absolute after:-bottom-5 after:left-0 after:w-full after:h-0.5 after:bg-slate-900" : "text-slate-500 hover:text-slate-900"}`
                         }
                     >
                         Research Chat
@@ -35,12 +35,12 @@ export default function Header({ username, handleLogout }) {
                 </div>
                 {/* RIGHT: USER & LOGOUT */}
                 <div className="flex items-center justify-end gap-6">
-                    <span className="text-sm font-medium text-slate-300">
-                        Hi, <span className="text-white font-bold">{username || 'User'}</span>
+                    <span className="text-sm font-medium text-slate-500">
+                        Hi, <span className="text-slate-900 font-bold">{username || 'User'}</span>
                     </span>
                     <button
                         onClick={handleLogout}
-                        className="px-5 py-2 bg-[#E40000] text-white text-xs font-bold hover:bg-red-700 transition-colors uppercase tracking-wider rounded-full"
+                        className="text-xs font-bold text-slate-400 hover:text-[#E40000] transition-colors uppercase tracking-wider"
                     >
                         Log Out
                     </button>

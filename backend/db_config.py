@@ -20,7 +20,8 @@ def result_helper(result) -> dict:
         "text": result.get("text"), 
         "saved_at": result.get("saved_at"),
         "tags": result.get("tags", []),
-        "is_favorite": result.get("is_favorite", False)
+        "is_favorite": result.get("is_favorite", False),
+        "note": result.get("note")
     }
 
 def chat_helper(chat) -> dict:
