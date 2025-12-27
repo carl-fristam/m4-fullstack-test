@@ -1,9 +1,11 @@
 annotated-doc==0.0.4
 annotated-types==0.7.0
+anthropic==0.75.0
 anyio==4.12.0
 bcrypt==4.0.1
 blinker==1.9.0
 cffi==2.0.0
+chromadb==0.3.23
 click==8.3.1
 cryptography==46.0.3
 dnspython==2.8.0
@@ -30,13 +32,13 @@ python-jose==3.5.0
 python-multipart==0.0.21
 pytz==2025.2
 rsa==4.9.1
+sentence-transformers==5.2.0
 six==1.17.0
 SQLAlchemy==2.0.45
 starlette==0.50.0
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 tzdata==2025.3
-unicorn==2.1.4
 uvicorn==0.38.0
 Werkzeug==3.1.4
 exa_py

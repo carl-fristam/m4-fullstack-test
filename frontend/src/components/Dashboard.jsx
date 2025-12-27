@@ -1,12 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import ChatWidget from "./ChatWidget";
+import API_BASE_URL from "../config";
 
-const API_URL = "http://192.168.0.41:8000/saved-results";
+const API_URL = `${API_BASE_URL}/saved-results`;
 
 export default function Dashboard({ token, handleLogout, username }) {
     const [sources, setSources] = useState([]);
     const [filter, setFilter] = useState("");
     const [loading, setLoading] = useState(false);
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [chatWidth, setChatWidth] = useState(450);
+    const [isResizing, setIsResizing] = useState(false);
 
     // New state for tag edit
     const [editingId, setEditingId] = useState(null);
@@ -248,210 +253,224 @@ export default function Dashboard({ token, handleLogout, username }) {
     });
 
     return (
-        <div className="min-h-screen bg-slate-50">
-            <main className="w-full max-w-7xl px-6 py-32 mx-auto relative">
-                {/* UNDO BUTTON: Contextual, Minimalist */}
-                {undoState && (
-                    <button
-                        onClick={undoDelete}
-                        className="fixed right-10 z-50 bg-white text-slate-900 w-10 h-10 rounded-lg shadow-xl shadow-slate-900/10 border border-slate-900 flex items-center justify-center hover:scale-110 transition-transform animate-pop-in"
-                        style={{ top: undoState.y }}
-                        title="Undo Delete"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
-                    </button>
-                )}
+        <div className="min-h-screen bg-slate-50 flex overflow-x-hidden">
+            <main
+                className={`flex-1 px-6 py-32 relative ${isResizing ? '' : 'transition-all duration-300'}`}
+                style={{ paddingRight: isChatOpen ? `${chatWidth}px` : '0px' }}
+            >
+                <div className={`max-w-7xl mx-auto transition-all duration-300`}>
+                    {/* UNDO BUTTON: Contextual, Minimalist */}
+                    {undoState && (
+                        <button
+                            onClick={undoDelete}
+                            className="fixed right-10 z-50 bg-white text-slate-900 w-10 h-10 rounded-lg shadow-xl shadow-slate-900/10 border border-slate-900 flex items-center justify-center hover:scale-110 transition-transform animate-pop-in"
+                            style={{ top: undoState.y }}
+                            title="Undo Delete"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                        </button>
+                    )}
 
-                <div className="flex flex-col gap-6 mb-8">
-                    <div className="flex justify-between items-end">
-                        <div>
-                            <h1 className="text-3xl font-bold text-slate-900">Knowledge Base</h1>
-                            <p className="text-slate-500 mt-2">Overview of your saved research papers and verified sources.</p>
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                            {/* Favorites Toggle */}
-                            <button
-                                onClick={() => setShowFavorites(!showFavorites)}
-                                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-full border transition-all ${showFavorites
-                                    ? "bg-slate-900 text-white border-slate-900"
-                                    : "bg-white text-slate-500 border-slate-200 hover:border-slate-400 hover:text-slate-900"
-                                    }`}
-                            >
-                                ★ Favorites Only
-                            </button>
-
-                            {/* Search Input */}
-                            <div className="relative">
-                                <input
-                                    className="pl-10 pr-4 py-2 border border-slate-200 focus:border-slate-900 outline-none text-sm w-64 bg-white rounded-full transition-all focus:shadow-sm placeholder:text-slate-400 text-slate-700"
-                                    placeholder="Search keywords..."
-                                    value={filter}
-                                    onChange={(e) => setFilter(e.target.value)}
-                                />
-                                <svg className="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <div className="flex flex-col gap-6 mb-8">
+                        <div className="flex justify-between items-end">
+                            <div>
+                                <h1 className="text-3xl font-bold text-slate-900">Knowledge Base</h1>
+                                <p className="text-slate-500 mt-2">Overview of your saved research papers and verified sources.</p>
                             </div>
-                        </div>
-                    </div>
 
-                    {/* Tag Filters */}
-                    {allTags.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                            <span className="text-xs font-bold uppercase text-slate-400 self-center mr-2">Filters:</span>
-                            {allTags.map(tag => (
+                            <div className="flex items-center gap-4">
+                                {/* Favorites Toggle */}
                                 <button
-                                    key={tag}
-                                    onClick={() => toggleTagSelect(tag)}
-                                    className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wide rounded-full border transition-all ${selectedTags.includes(tag)
+                                    onClick={() => setShowFavorites(!showFavorites)}
+                                    className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-full border transition-all ${showFavorites
                                         ? "bg-slate-900 text-white border-slate-900"
-                                        : "bg-white text-slate-500 border-slate-200 hover:border-slate-900 hover:text-slate-900"
+                                        : "bg-white text-slate-500 border-slate-200 hover:border-slate-400 hover:text-slate-900"
                                         }`}
                                 >
-                                    {tag}
+                                    ★ Favorites Only
                                 </button>
-                            ))}
-                            {selectedTags.length > 0 && (
-                                <button onClick={() => setSelectedTags([])} className="text-xs text-slate-400 hover:text-red-600 hover:underline self-center ml-2">
-                                    Clear
-                                </button>
-                            )}
-                        </div>
-                    )}
-                </div>
 
-                <div className="bg-white border border-slate-200 shadow-sm overflow-hidden rounded-xl">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-slate-900 border-b border-slate-900">
-                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white w-12 text-center">Fav</th>
-                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white">Source Title / URL</th>
-                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white w-1/5">Tags</th>
-                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white w-1/5">Notes</th>
-                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white text-right w-24">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {filteredSources.map((s) => (
-                                <tr
-                                    key={s.id}
-                                    className={`hover:bg-slate-50 transition-all duration-300 group ${deletingId === s.id ? "opacity-0 scale-95" : "opacity-100"}`}
-                                >
-                                    <td className="px-6 py-4 text-center cursor-pointer" onClick={() => toggleFavorite(s)}>
-                                        <span className={`text-xl ${s.is_favorite ? "text-amber-400" : "text-slate-200 group-hover:text-slate-300"}`}>★</span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <a href={s.url} target="_blank" rel="noreferrer" className="font-bold text-slate-900 text-sm mb-1 hover:underline block">
-                                            {s.title || "Untitled Document"}
-                                        </a>
-                                        <div className="text-xs text-slate-400 font-mono truncate max-w-[300px]">{s.url}</div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-wrap gap-2 mb-2">
-                                            {s.tags?.map(t => (
-                                                <span key={t} className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-600 border border-slate-200">
-                                                    {t}
-                                                    <button onClick={() => removeTag(s, t)} className="ml-1 hover:text-red-500">×</button>
-                                                </span>
-                                            ))}
-                                            <button
-                                                onClick={() => setEditingId(editingId === s.id ? null : s.id)}
-                                                className="tag-trigger px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-white border border-slate-200 text-slate-400 hover:border-slate-900 hover:text-slate-900 transition-colors"
-                                            >
-                                                {editingId === s.id ? "Close" : "+ Tag"}
-                                            </button>
-                                        </div>
-                                        {editingId === s.id && (
-                                            <div className="tag-popup absolute z-10 bg-white border border-slate-200 shadow-xl p-2 rounded-xl mt-1 flex flex-col gap-2 min-w-[160px]">
-                                                <div className="flex gap-1">
-                                                    <input
-                                                        className="px-2 py-1 text-xs border border-slate-300 outline-none focus:border-slate-900 w-full rounded-l-lg"
-                                                        placeholder="New tag..."
-                                                        value={tagInput}
-                                                        onChange={e => setTagInput(e.target.value)}
-                                                        autoFocus
-                                                        onKeyDown={e => e.key === 'Enter' && addTag(s.id, s.tags || [])}
-                                                    />
-                                                    <button onClick={() => addTag(s.id, s.tags || [])} className="px-2 py-1 bg-slate-900 text-white text-xs rounded-r-lg hover:bg-black transition-colors">OK</button>
-                                                </div>
-                                                {/* Suggestions */}
-                                                {allTags.filter(t => t.toLowerCase().includes(tagInput.toLowerCase()) && !s.tags?.includes(t)).length > 0 && (
-                                                    <div className="flex flex-col gap-1 max-h-32 overflow-y-auto border-t border-slate-100 pt-1">
-                                                        <span className="text-[9px] uppercase font-bold text-slate-400 px-1">Suggestions</span>
-                                                        {allTags.filter(t => t.toLowerCase().includes(tagInput.toLowerCase()) && !s.tags?.includes(t)).map(t => (
-                                                            <button
-                                                                key={t}
-                                                                onClick={() => addTag(s.id, s.tags || [], t)}
-                                                                className="text-left text-xs px-2 py-1 hover:bg-slate-50 text-slate-700 hover:text-black rounded-md font-medium truncate"
-                                                            >
-                                                                {t}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 relative">
-                                        {/* NOTES COLUMN */}
-                                        {s.note ? (
-                                            <div onClick={(e) => openNote(s, e)} className="cursor-pointer group/note">
-                                                <p className="text-xs text-slate-500 line-clamp-2 hover:text-slate-900 transition-colors">{s.note}</p>
-                                            </div>
-                                        ) : (
-                                            <button
-                                                onClick={(e) => openNote(s, e)}
-                                                className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-900 opacity-0 group-hover:opacity-50 hover:!opacity-100 transition-all font-bold text-lg"
-                                            >
-                                                +
-                                            </button>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button onClick={(e) => removeSource(s.id, e)} className="text-slate-300 hover:text-[#E40000] p-2 transition-colors">
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {filteredSources.length === 0 && (
-                                <tr>
-                                    <td colSpan="5" className="py-16 text-center text-slate-400 text-sm">
-                                        {filter ? "No matches found." : "Repository is empty. Start researching!"}
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* NOTES OVERLAY */}
-                {activeNote && (
-                    <>
-                        <div className="fixed inset-0 z-[60]" onClick={() => saveNote()}></div>
-                        <div
-                            className="fixed z-[70] bg-white w-64 p-4 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-slate-100 animate-pop-in"
-                            style={{ top: activeNote.y, left: activeNote.x }}
-                        >
-                            <h4 className="text-[10px] font-bold uppercase text-slate-400 mb-2 tracking-widest">Edit Note</h4>
-                            <textarea
-                                className="w-full text-sm text-slate-600 bg-slate-50 border-none rounded-lg p-2 resize-none outline-none focus:ring-1 focus:ring-slate-200 h-24 mb-2 placeholder:text-slate-300"
-                                placeholder="Add a note..."
-                                value={noteInput}
-                                onChange={(e) => setNoteInput(e.target.value)}
-                                autoFocus
-                            />
-                            <div className="flex justify-end">
-                                <button
-                                    onClick={saveNote}
-                                    className="px-3 py-1 bg-slate-900 text-white text-xs font-bold rounded-lg hover:scale-105 transition-transform"
-                                >
-                                    Save
-                                </button>
+                                {/* Search Input */}
+                                <div className="relative">
+                                    <input
+                                        className="pl-10 pr-4 py-2 border border-slate-200 focus:border-slate-900 outline-none text-sm w-64 bg-white rounded-full transition-all focus:shadow-sm placeholder:text-slate-400 text-slate-700"
+                                        placeholder="Search keywords..."
+                                        value={filter}
+                                        onChange={(e) => setFilter(e.target.value)}
+                                    />
+                                    <svg className="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </div>
                             </div>
                         </div>
-                    </>
-                )}
+
+                        {/* Tag Filters */}
+                        {allTags.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                                <span className="text-xs font-bold uppercase text-slate-400 self-center mr-2">Filters:</span>
+                                {allTags.map(tag => (
+                                    <button
+                                        key={tag}
+                                        onClick={() => toggleTagSelect(tag)}
+                                        className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wide rounded-full border transition-all ${selectedTags.includes(tag)
+                                            ? "bg-slate-900 text-white border-slate-900"
+                                            : "bg-white text-slate-500 border-slate-200 hover:border-slate-900 hover:text-slate-900"
+                                            }`}
+                                    >
+                                        {tag}
+                                    </button>
+                                ))}
+                                {selectedTags.length > 0 && (
+                                    <button onClick={() => setSelectedTags([])} className="text-xs text-slate-400 hover:text-red-600 hover:underline self-center ml-2">
+                                        Clear
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="bg-white border border-slate-200 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] overflow-hidden rounded-xl transition-shadow hover:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.08)]">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-900 border-b border-slate-900">
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white w-12 text-center">Fav</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white">Source Title / URL</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white w-1/5">Tags</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white w-1/5">Notes</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white text-right w-24">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {filteredSources.map((s) => (
+                                    <tr
+                                        key={s.id}
+                                        className={`hover:bg-slate-50 transition-all duration-300 group ${deletingId === s.id ? "opacity-0 scale-95" : "opacity-100"}`}
+                                    >
+                                        <td className="px-6 py-4 text-center cursor-pointer" onClick={() => toggleFavorite(s)}>
+                                            <span className={`text-xl ${s.is_favorite ? "text-amber-400" : "text-slate-200 group-hover:text-slate-300"}`}>★</span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <a href={s.url} target="_blank" rel="noreferrer" className="font-bold text-slate-900 text-sm mb-1 hover:underline block">
+                                                {s.title || "Untitled Document"}
+                                            </a>
+                                            <div className="text-xs text-slate-400 font-mono truncate max-w-[300px]">{s.url}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-wrap gap-2 mb-2">
+                                                {s.tags?.map(t => (
+                                                    <span key={t} className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-600 border border-slate-200">
+                                                        {t}
+                                                        <button onClick={() => removeTag(s, t)} className="ml-1 hover:text-red-500">×</button>
+                                                    </span>
+                                                ))}
+                                                <button
+                                                    onClick={() => setEditingId(editingId === s.id ? null : s.id)}
+                                                    className="tag-trigger px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-white border border-slate-200 text-slate-400 hover:border-slate-900 hover:text-slate-900 transition-colors"
+                                                >
+                                                    {editingId === s.id ? "Close" : "+ Tag"}
+                                                </button>
+                                            </div>
+                                            {editingId === s.id && (
+                                                <div className="tag-popup absolute z-10 bg-white border border-slate-200 shadow-xl p-2 rounded-xl mt-1 flex flex-col gap-2 min-w-[160px]">
+                                                    <div className="flex gap-1">
+                                                        <input
+                                                            className="px-2 py-1 text-xs border border-slate-300 outline-none focus:border-slate-900 w-full rounded-l-lg"
+                                                            placeholder="New tag..."
+                                                            value={tagInput}
+                                                            onChange={e => setTagInput(e.target.value)}
+                                                            autoFocus
+                                                            onKeyDown={e => e.key === 'Enter' && addTag(s.id, s.tags || [])}
+                                                        />
+                                                        <button onClick={() => addTag(s.id, s.tags || [])} className="px-2 py-1 bg-slate-900 text-white text-xs rounded-r-lg hover:bg-black transition-colors">OK</button>
+                                                    </div>
+                                                    {/* Suggestions */}
+                                                    {allTags.filter(t => t.toLowerCase().includes(tagInput.toLowerCase()) && !s.tags?.includes(t)).length > 0 && (
+                                                        <div className="flex flex-col gap-1 max-h-32 overflow-y-auto border-t border-slate-100 pt-1">
+                                                            <span className="text-[9px] uppercase font-bold text-slate-400 px-1">Suggestions</span>
+                                                            {allTags.filter(t => t.toLowerCase().includes(tagInput.toLowerCase()) && !s.tags?.includes(t)).map(t => (
+                                                                <button
+                                                                    key={t}
+                                                                    onClick={() => addTag(s.id, s.tags || [], t)}
+                                                                    className="text-left text-xs px-2 py-1 hover:bg-slate-50 text-slate-700 hover:text-black rounded-md font-medium truncate"
+                                                                >
+                                                                    {t}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 relative">
+                                            {/* NOTES COLUMN */}
+                                            {s.note ? (
+                                                <div onClick={(e) => openNote(s, e)} className="cursor-pointer group/note">
+                                                    <p className="text-xs text-slate-500 line-clamp-2 hover:text-slate-900 transition-colors">{s.note}</p>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={(e) => openNote(s, e)}
+                                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-900 opacity-0 group-hover:opacity-50 hover:!opacity-100 transition-all font-bold text-lg"
+                                                >
+                                                    +
+                                                </button>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <button onClick={(e) => removeSource(s.id, e)} className="text-slate-300 hover:text-[#E40000] p-2 transition-colors">
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {filteredSources.length === 0 && (
+                                    <tr>
+                                        <td colSpan="5" className="py-16 text-center text-slate-400 text-sm">
+                                            {filter ? "No matches found." : "Repository is empty. Start researching!"}
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* NOTES OVERLAY */}
+                    {activeNote && (
+                        <>
+                            <div className="fixed inset-0 z-[60]" onClick={() => saveNote()}></div>
+                            <div
+                                className="fixed z-[70] bg-white w-64 p-4 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-slate-100 animate-pop-in"
+                                style={{ top: activeNote.y, left: activeNote.x }}
+                            >
+                                <h4 className="text-[10px] font-bold uppercase text-slate-400 mb-2 tracking-widest">Edit Note</h4>
+                                <textarea
+                                    className="w-full text-sm text-slate-600 bg-slate-50 border-none rounded-lg p-2 resize-none outline-none focus:ring-1 focus:ring-slate-200 h-24 mb-2 placeholder:text-slate-300"
+                                    placeholder="Add a note..."
+                                    value={noteInput}
+                                    onChange={(e) => setNoteInput(e.target.value)}
+                                    autoFocus
+                                />
+                                <div className="flex justify-end">
+                                    <button
+                                        onClick={saveNote}
+                                        className="px-3 py-1 bg-slate-900 text-white text-xs font-bold rounded-lg hover:scale-105 transition-transform"
+                                    >
+                                        Save
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
             </main>
+            <ChatWidget
+                token={token}
+                isOpen={isChatOpen}
+                toggleChat={() => setIsChatOpen(!isChatOpen)}
+                width={chatWidth}
+                setWidth={setChatWidth}
+                setIsResizing={setIsResizing}
+                isResizing={isResizing}
+            />
         </div >
     );
 }

@@ -16,6 +16,8 @@ services:
     build: ./backend
     ports:
       - "8000:8000"
+    volumes:
+      - ./backend:/app # This syncs your code changes into the container instantly
     environment:
       - MONGO_DETAILS=mongodb://mongo:27017
     depends_on:

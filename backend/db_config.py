@@ -1,5 +1,8 @@
 import motor.motor_asyncio
 import os
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv())
 
 # Inside Docker-Compose, the hostname 'mongo' matches our service name
 # Locally, it would be 'localhost'

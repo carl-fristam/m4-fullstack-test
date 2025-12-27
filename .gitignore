@@ -24,3 +24,5 @@ backend/venv/
 *.njsproj
 *.sln
 *.sw?
+.env
+backend/.env

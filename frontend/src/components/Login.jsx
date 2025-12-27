@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import API_BASE_URL from '../config';
 
 const Login = ({ onLoginSuccess }) => {
     const [isRegistering, setIsRegistering] = useState(false);
@@ -22,7 +23,7 @@ const Login = ({ onLoginSuccess }) => {
         const endpoint = isRegistering ? "register" : "login";
 
         try {
-            const response = await fetch(`http://192.168.0.41:8000/${endpoint}`, {
+            const response = await fetch(`${API_BASE_URL}/${endpoint}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password }),

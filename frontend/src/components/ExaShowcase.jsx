@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import API_BASE_URL from "../config";
 
 export default function ExaShowcase({ token, handleLogout, username }) {
     const [query, setQuery] = useState("");
@@ -19,7 +20,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
 
     const loadChats = async (autoSelectId = null) => {
         try {
-            const res = await fetch("http://192.168.0.41:8000/chats", {
+            const res = await fetch(`${API_BASE_URL}/chats`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {
@@ -47,7 +48,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
     const deleteChat = async (e, id) => {
         e.stopPropagation();
         e.stopPropagation();
-        await fetch(`http://192.168.0.41:8000/chats/${id}`, {
+        await fetch(`${API_BASE_URL}/chats/${id}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` }
         });
@@ -81,7 +82,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
         let activeChatId = forceChatId || currentChatId;
         if (!activeChatId) {
             try {
-                const chatRes = await fetch("http://192.168.0.41:8000/chats", {
+                const chatRes = await fetch(`${API_BASE_URL}/chats`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -98,7 +99,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
         }
 
         try {
-            const url = new URL("http://192.168.0.41:8000/exa-search");
+            const url = new URL(`${API_BASE_URL}/exa-search`);
             url.searchParams.append("query", searchTarget);
 
             const res = await fetch(url, {
@@ -118,7 +119,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
 
             // Persist results to chat session
             if (activeChatId) {
-                await fetch(`http://192.168.0.41:8000/chats/${activeChatId}/results`, {
+                await fetch(`${API_BASE_URL}/chats/${activeChatId}/results`, {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json",
@@ -145,7 +146,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
 
     const fetchSavedItems = async () => {
         try {
-            const res = await fetch("http://192.168.0.41:8000/saved-results", {
+            const res = await fetch(`${API_BASE_URL}/saved-results`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {
@@ -163,7 +164,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
         try {
             if (savedItem) {
                 // DELETE (Undo Save)
-                const res = await fetch(`http://192.168.0.41:8000/saved-results/${savedItem.id}`, {
+                const res = await fetch(`${API_BASE_URL}/saved-results/${savedItem.id}`, {
                     method: "DELETE",
                     headers: { "Authorization": `Bearer ${token}` }
                 });
@@ -180,7 +181,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
                     is_favorite: false // Default to false when just saving
                 };
 
-                const res = await fetch("http://192.168.0.41:8000/saved-results", {
+                const res = await fetch(`${API_BASE_URL}/saved-results`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -206,7 +207,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
             if (savedItem) {
                 // ALREADY SAVED -> TOGGLE FAVORITE
                 const update = { is_favorite: !savedItem.is_favorite };
-                const res = await fetch(`http://192.168.0.41:8000/saved-results/${savedItem.id}`, {
+                const res = await fetch(`${API_BASE_URL}/saved-results/${savedItem.id}`, {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json",
@@ -231,7 +232,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
                     is_favorite: true // Set to true immediately
                 };
 
-                const res = await fetch("http://192.168.0.41:8000/saved-results", {
+                const res = await fetch(`${API_BASE_URL}/saved-results`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -287,8 +288,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
                             <div
                                 key={chat.id}
                                 onClick={() => selectChat(chat)}
-                                className={`group relative p-3 rounded-lg text-sm cursor-pointer transition-all ${currentChatId === chat.id ? "bg-white ring-1 ring-slate-200 shadow-sm" : "hover:bg-slate-200/50"}`}
-                            >
+                                className={`group relative p-3 rounded-lg text-sm cursor-pointer transition-all ${currentChatId === chat.id ? "bg-white ring-1 ring-slate-200 shadow-sm" : "hover:bg-slate-200/50"}`}>
                                 <div className={`font-medium truncate pr-6 ${currentChatId === chat.id ? "text-slate-900" : "text-slate-600"}`}>{chat.title}</div>
                                 <div className="text-[10px] text-slate-400 mt-1 truncate">{new Date(chat.created_at).toLocaleString() || "Just now"}</div>
 
