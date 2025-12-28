@@ -253,87 +253,97 @@ export default function Dashboard({ token, handleLogout, username }) {
     });
 
     return (
-        <div className="min-h-screen bg-slate-50 flex overflow-x-hidden">
+        <div className="h-screen bg-slate-50 flex overflow-hidden">
             <main
-                className={`flex-1 px-6 py-32 relative ${isResizing ? '' : 'transition-all duration-300'}`}
-                style={{ paddingRight: isChatOpen ? `${chatWidth}px` : '0px' }}
+                className="flex-1 flex gap-10 items-start w-full h-full pt-24"
             >
-                <div className={`max-w-7xl mx-auto transition-all duration-300`}>
+                {/* LEFT COLUMN: EMBEDDED CHAT */}
+                <div className="w-[40%] h-full flex flex-col pt-10 pb-8 pl-8">
+                    <ChatWidget
+                        token={token}
+                        username={username}
+                        isOpen={isChatOpen}
+                        toggleChat={() => setIsChatOpen(!isChatOpen)}
+                        width={chatWidth}
+                        setWidth={setChatWidth}
+                        setIsResizing={setIsResizing}
+                        isResizing={isResizing}
+                        isEmbedded={true}
+                    />
+                </div>
+
+                {/* RIGHT COLUMN: KNOWLEDGE BASE TABLE */}
+                <div className="w-[60%] h-full overflow-y-auto pt-10 pb-32 pr-8 scroll-smooth">
                     {/* UNDO BUTTON: Contextual, Minimalist */}
                     {undoState && (
                         <button
                             onClick={undoDelete}
-                            className="fixed right-10 z-50 bg-white text-slate-900 w-10 h-10 rounded-lg shadow-xl shadow-slate-900/10 border border-slate-900 flex items-center justify-center hover:scale-110 transition-transform animate-pop-in"
-                            style={{ top: undoState.y }}
+                            className="absolute -right-4 top-12 z-50 bg-white text-slate-900 w-10 h-10 rounded-lg shadow-xl shadow-slate-900/10 border border-slate-900 flex items-center justify-center hover:scale-110 transition-transform animate-pop-in"
                             title="Undo Delete"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
                         </button>
                     )}
 
-                    <div className="flex flex-col gap-6 mb-8">
-                        <div className="flex justify-between items-end">
-                            <div>
-                                <h1 className="text-3xl font-bold text-slate-900">Knowledge Base</h1>
-                                <p className="text-slate-500 mt-2">Overview of your saved research papers and verified sources.</p>
-                            </div>
+                    <div className="bg-white border border-slate-100 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] overflow-hidden rounded-xl transition-shadow hover:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.08)] w-full overflow-x-auto">
+                        <div className="p-4">
+                            <h1 className="text-3xl font-bold text-slate-900">Saved sources</h1>
+                            <p className="text-slate-500 mt-2">Overview of your saved research papers.</p>
+                            <div className="flex flex-wrap items-center justify-between gap-4 mt-6">
+                                {/* LEFT: TAG FILTERS */}
+                                {allTags.length > 0 && (
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className="text-[10px] font-bold uppercase text-slate-400 mr-2 tracking-widest">Filters:</span>
+                                        {allTags.map(tag => (
+                                            <button
+                                                key={tag}
+                                                onClick={() => toggleTagSelect(tag)}
+                                                className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wide rounded-full border transition-all ${selectedTags.includes(tag)
+                                                    ? "bg-slate-900 text-white border-slate-900"
+                                                    : "bg-white text-slate-500 border-slate-200 hover:border-slate-900 hover:text-slate-900"
+                                                    }`}
+                                            >
+                                                {tag}
+                                            </button>
+                                        ))}
+                                        {selectedTags.length > 0 && (
+                                            <button onClick={() => setSelectedTags([])} className="text-[10px] font-bold uppercase text-slate-400 hover:text-red-600 hover:underline ml-2 tracking-tight">
+                                                Clear
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
 
-                            <div className="flex items-center gap-4">
-                                {/* Favorites Toggle */}
-                                <button
-                                    onClick={() => setShowFavorites(!showFavorites)}
-                                    className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-full border transition-all ${showFavorites
-                                        ? "bg-slate-900 text-white border-slate-900"
-                                        : "bg-white text-slate-500 border-slate-200 hover:border-slate-400 hover:text-slate-900"
-                                        }`}
-                                >
-                                    ★ Favorites Only
-                                </button>
-
-                                {/* Search Input */}
-                                <div className="relative">
-                                    <input
-                                        className="pl-10 pr-4 py-2 border border-slate-200 focus:border-slate-900 outline-none text-sm w-64 bg-white rounded-full transition-all focus:shadow-sm placeholder:text-slate-400 text-slate-700"
-                                        placeholder="Search keywords..."
-                                        value={filter}
-                                        onChange={(e) => setFilter(e.target.value)}
-                                    />
-                                    <svg className="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                {/* RIGHT: FAVORITES & SEARCH */}
+                                <div className="flex items-center gap-4 ml-auto">
+                                    <button
+                                        onClick={() => setShowFavorites(!showFavorites)}
+                                        className={`px-4 py-2 text-[10px] font-bold uppercase tracking-wider rounded-full border transition-all ${showFavorites
+                                            ? "bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/10"
+                                            : "bg-white text-slate-500 border-slate-200 hover:border-slate-400 hover:text-slate-900"
+                                            }`}
+                                    >
+                                        ★ Favorites Only
+                                    </button>
+                                    <div className="relative">
+                                        <input
+                                            className="pl-10 pr-4 py-2 border border-slate-200 focus:border-slate-900 outline-none text-xs w-48 bg-white rounded-full transition-all focus:shadow-sm placeholder:text-slate-400 text-slate-700"
+                                            placeholder="Search keywords..."
+                                            value={filter}
+                                            onChange={(e) => setFilter(e.target.value)}
+                                        />
+                                        <svg className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-
-                        {/* Tag Filters */}
-                        {allTags.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                                <span className="text-xs font-bold uppercase text-slate-400 self-center mr-2">Filters:</span>
-                                {allTags.map(tag => (
-                                    <button
-                                        key={tag}
-                                        onClick={() => toggleTagSelect(tag)}
-                                        className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wide rounded-full border transition-all ${selectedTags.includes(tag)
-                                            ? "bg-slate-900 text-white border-slate-900"
-                                            : "bg-white text-slate-500 border-slate-200 hover:border-slate-900 hover:text-slate-900"
-                                            }`}
-                                    >
-                                        {tag}
-                                    </button>
-                                ))}
-                                {selectedTags.length > 0 && (
-                                    <button onClick={() => setSelectedTags([])} className="text-xs text-slate-400 hover:text-red-600 hover:underline self-center ml-2">
-                                        Clear
-                                    </button>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="bg-white border border-slate-200 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] overflow-hidden rounded-xl transition-shadow hover:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.08)]">
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-slate-900 border-b border-slate-900">
                                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white w-12 text-center">Fav</th>
-                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white">Source Title / URL</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white min-w-[300px] whitespace-normal">Source Title / URL</th>
                                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white w-1/5">Tags</th>
                                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white w-1/5">Notes</th>
                                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white text-right w-24">Action</th>
@@ -349,10 +359,10 @@ export default function Dashboard({ token, handleLogout, username }) {
                                             <span className={`text-xl ${s.is_favorite ? "text-amber-400" : "text-slate-200 group-hover:text-slate-300"}`}>★</span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <a href={s.url} target="_blank" rel="noreferrer" className="font-bold text-slate-900 text-sm mb-1 hover:underline block">
+                                            <div className="font-bold text-slate-900 text-sm mb-1 break-words whitespace-normal">
                                                 {s.title || "Untitled Document"}
-                                            </a>
-                                            <div className="text-xs text-slate-400 font-mono truncate max-w-[300px]">{s.url}</div>
+                                            </div>
+                                            <div className="text-xs text-slate-400 font-mono truncate max-w-[200px]">{s.url}</div>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex flex-wrap gap-2 mb-2">
@@ -462,15 +472,6 @@ export default function Dashboard({ token, handleLogout, username }) {
                     )}
                 </div>
             </main>
-            <ChatWidget
-                token={token}
-                isOpen={isChatOpen}
-                toggleChat={() => setIsChatOpen(!isChatOpen)}
-                width={chatWidth}
-                setWidth={setChatWidth}
-                setIsResizing={setIsResizing}
-                isResizing={isResizing}
-            />
-        </div >
+        </div>
     );
 }

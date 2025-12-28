@@ -20,7 +20,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
 
     const loadChats = async (autoSelectId = null) => {
         try {
-            const res = await fetch(`${API_BASE_URL}/chats`, {
+            const res = await fetch(`${API_BASE_URL}/chats?type=research`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {
@@ -88,7 +88,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${token}`
                     },
-                    body: JSON.stringify({ title: searchTarget, last_message: searchTarget })
+                    body: JSON.stringify({ title: searchTarget, last_message: searchTarget, type: "research" })
                 });
                 const chatData = await chatRes.json();
                 activeChatId = chatData.id;
@@ -192,7 +192,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
 
                 if (res.ok) {
                     const data = await res.json();
-                    setSavedItems(prev => [...prev, { ...payload, ...data }]);
+                    setSavedItems(prev => [prev, { payload, data }]);
                 }
             }
         } catch (err) {
@@ -219,7 +219,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
                 if (res.ok) {
                     // Update local state
                     setSavedItems(prev => prev.map(s =>
-                        s.id === savedItem.id ? { ...s, is_favorite: !s.is_favorite } : s
+                        s.id === savedItem.id ? { s, is_favorite: !s.is_favorite } : s
                     ));
                 }
             } else {
@@ -243,7 +243,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
 
                 if (res.ok) {
                     const data = await res.json();
-                    setSavedItems(prev => [...prev, { ...payload, ...data }]);
+                    setSavedItems(prev => [prev, { payload, data }]);
                 }
             }
         } catch (err) {
@@ -254,6 +254,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
     const [previewUrl, setPreviewUrl] = useState(null);
     const [previewText, setPreviewText] = useState("");
     const [previewMode, setPreviewMode] = useState("web"); // 'web' | 'text'
+    const [previewExpanded, setPreviewExpanded] = useState(false); // false = 25%, true = 70%
 
     const openPreview = (e, url, text) => {
         e.preventDefault();
@@ -265,6 +266,11 @@ export default function ExaShowcase({ token, handleLogout, username }) {
     const closePreview = () => {
         setPreviewUrl(null);
         setPreviewText("");
+        setPreviewExpanded(false); // Reset to collapsed
+    };
+
+    const togglePreviewSize = () => {
+        setPreviewExpanded(!previewExpanded);
     };
 
     return (
@@ -281,8 +287,8 @@ export default function ExaShowcase({ token, handleLogout, username }) {
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
-                        <h3 className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mb-3 mt-2 px-2">History</h3>
+                    <div className="flex-1 overflow-y-auto px- pb-4 space-y-1">
+                        <h3 className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mb-3 mt-2 px-4">History</h3>
                         {chats.length === 0 && <p className="text-[10px] text-slate-400 px-2 italic">No history yet.</p>}
                         {chats.map(chat => (
                             <div
@@ -303,7 +309,10 @@ export default function ExaShowcase({ token, handleLogout, username }) {
                     </div>
                 </aside>
 
-                <main className={`flex-1 overflow-y-auto bg-slate-50 relative pt-10 transition-all duration-300 ${previewUrl ? "pb-[50vh]" : ""}`}>
+                <main
+                    className="flex-1 overflow-y-auto bg-slate-50 relative pt-10 transition-all duration-300"
+                    style={previewUrl ? { paddingRight: previewExpanded ? '72vw' : '27vw' } : {}}
+                >
                     <div className="max-w-7xl mx-auto px-6 py-12">
                         <div className="text-center mb-12">
                             <h1 className="text-3xl font-bold text-slate-900 mb-4">
@@ -406,7 +415,12 @@ export default function ExaShowcase({ token, handleLogout, username }) {
 
                 {/* PREVIEW OVERLAY */}
                 {previewUrl && (
-                    <div className="fixed bottom-6 left-6 right-6 h-[60vh] bg-white border border-slate-200 shadow-2xl z-50 flex flex-col animate-slide-up rounded-2xl overflow-hidden ring-1 ring-slate-900/5">
+                    <div
+                        className="fixed bottom-6 right-6 top-24 bg-white border border-slate-200 shadow-2xl z-50 flex flex-col rounded-2xl overflow-hidden ring-1 ring-slate-900/5 transition-all duration-300 ease-in-out"
+                        style={{
+                            width: previewExpanded ? '70vw' : '25vw'
+                        }}
+                    >
                         <div className="flex items-center justify-between px-6 py-3 bg-slate-50 border-b border-slate-200">
                             <div className="flex items-center gap-4 overflow-hidden flex-1">
                                 <div className="flex rounded-md bg-white border border-slate-300 overflow-hidden shrink-0">
@@ -428,9 +442,19 @@ export default function ExaShowcase({ token, handleLogout, username }) {
                                     {previewUrl} <span className="text-[10px] text-slate-400 italic ml-2 opacity-50 font-sans normal-case">(Click to open in new tab if blocked)</span>
                                 </a>
                             </div>
-                            <button onClick={closePreview} className="text-slate-500 hover:text-[#E40000] font-bold p-2 transition-colors ml-4">
-                                ✕ Close
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {/* SIZE TOGGLE BUTTON */}
+                                <button
+                                    onClick={togglePreviewSize}
+                                    className="text-slate-500 hover:text-slate-900 font-bold p-2 transition-colors"
+                                    title={previewExpanded ? "Minimize" : "Expand"}
+                                >
+                                    {previewExpanded ? "Minimize" : "Expand"}
+                                </button>
+                                <button onClick={closePreview} className="text-slate-500 hover:text-[#E40000] font-bold p-2 transition-colors">
+                                    ✕ Close
+                                </button>
+                            </div>
                         </div>
 
                         {previewMode === "web" ? (

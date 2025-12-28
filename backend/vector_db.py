@@ -48,8 +48,8 @@ class LocalVectorStore:
         if not self.data:
             return []
         
-        # Filter data by user_id (or no user_id for legacy docs)
-        user_data = [d for d in self.data if d.get('user_id') == user_id or d.get('user_id') is None]
+        # Filter data by user_id (strict - no legacy fallback)
+        user_data = [d for d in self.data if d.get('user_id') == user_id]
         if not user_data:
             return []
             
