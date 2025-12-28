@@ -31,7 +31,9 @@ def chat_helper(chat) -> dict:
     return {
         "id": str(chat["_id"]),
         "title": chat.get("title", "New Chat"),
+        "type": chat.get("type", "knowledge_base"),
         "created_at": chat.get("created_at"),
         "last_message": chat.get("last_message", ""),
-        "results": chat.get("results", [])
+        "results": chat.get("results", []),
+        "messages": chat.get("messages", [])
     }

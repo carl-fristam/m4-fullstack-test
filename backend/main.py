@@ -55,15 +55,18 @@ class SourceUpdate(BaseModel):
 
 class ChatSession(BaseModel):
     title: str
+    type: str = "knowledge_base"  # "knowledge_base" or "research"
     last_message: str | None = None
     user_id: str | None = None
     results: list | None = None
+    messages: list | None = []
 
 class ChatResultsUpdate(BaseModel):
     results: list
 
 class ChatQuery(BaseModel):
     question: str
+    session_id: str | None = None  # Optional session ID for conversation context
 
 # Helper for the users collection
 user_collection = db_config.database.get_collection("users")
@@ -193,109 +196,183 @@ anthropic_client = AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 @app.post("/chat-query")
 async def chat_query(query: ChatQuery, token: str = Depends(oauth2_scheme)):
-    # Verify the user
     user_id = auth_handler.decode_token(token)
 
-    # --- STAGE 1: SCANNING (50 candidates for better TPM stability) ---
-    search_results = vector_db.search_documents(query.question, user_id, n_results=50)
-    
-    # Filter by similarity threshold to avoid pulling junk context for small talk (e.g. "thanks!")
-    # Lowered threshold to 0.15 for better sensitivity
-    relevant_results = [res for res in search_results if res.get("score", 0) > 0.15]
-    
-    selected_full_context = []
-    source_titles = []
-
-    if not relevant_results:
-        # If no relevant research, skip to Stage 3 with NO context
-        print(f"No relevant research found for query: {query.question}. Transitioning to general chat mode.")
-        context_text = "No relevant saved research sources were found for this query."
-    else:
-        # --- STAGE 2: INTELLIGENT SELECTION ---
-        candidates = []
-        for res in relevant_results:
-            candidates.append({
-                "id": res["id"],
-                "title": res["metadata"].get("title", "Untitled"),
-                "snippet": res["text"][:300] if res["text"] else ""
-            })
-
-        selection_prompt = (
-            "You are a selection agent. Below is a list of search results with IDs, titles, and short snippets. "
-            "Identify the top 10 most relevant results that can answer the following question. "
-            "Return ONLY a JSON list of the IDs. No other text.\n\n"
-            f"Question: {query.question}\n"
-            f"Candidates: {json.dumps(candidates)}"
-        )
-
+    # STEP 1: Load conversation history (if session exists)
+    conversation_history = []
+    if query.session_id:
         try:
-            selection_res = await anthropic_client.messages.create(
-                model=os.getenv("HAIKU_MODEL", "claude-3-5-haiku-20241022"),
-                max_tokens=400,
-                messages=[{"role": "user", "content": selection_prompt}]
-            )
-            selected_ids_text = selection_res.content[0].text
-            if '[' in selected_ids_text:
-                selected_ids_text = selected_ids_text[selected_ids_text.find('['):selected_ids_text.rfind(']')+1]
-            selected_ids = json.loads(selected_ids_text)
+            session = await db_config.chat_collection.find_one({
+                "_id": ObjectId(query.session_id),
+                "user_id": user_id
+            })
+            if session and session.get("messages"):
+                conversation_history = session["messages"][-10:]
+                print(f"Loaded {len(conversation_history)} messages from session")
         except Exception as e:
-            print(f"Selection Error/Rate Limit: {e}. Falling back to top-10.")
-            selected_ids = [c["id"] for c in candidates[:10]]
+            print(f"Error loading session: {e}")
 
-        # --- STAGE 3: PREPARE CONTEXT ---
-        results_map = {res["id"]: res for res in relevant_results}
-        for sid in selected_ids:
-            if sid in results_map:
-                res = results_map[sid]
-                title = res["metadata"].get("title", "Untitled")
-                text_deep = res["text"][:3500] if res["text"] else ""
-                selected_full_context.append(f"Source: {title}\nContent: {text_deep}")
-                source_titles.append(title)
-        context_text = "\n\n---\n\n".join(selected_full_context)
+    # STEP 2: Get ALL saved sources for context
+    total_sources = await db_config.saved_results_collection.count_documents({"user_id": user_id})
     
-    # Final Generation
-    system_prompt = (
-        "You are a research assistant. If research sources are provided, use them to answer. "
-        "If the query is a simple greeting, thank you, or general question not covered by research, "
-        "respond naturally as a helpful AI assistant. Do NOT claim you have no research if the user just said 'thanks'. "
-        "Do NOT list sources at the end. Use [SHOW_SOURCES] at the very end only if you used specific research results."
-    )
+    all_sources = []
+    async for res in db_config.saved_results_collection.find({"user_id": user_id}).limit(100):
+        all_sources.append({
+            "title": res.get("title", "Untitled"),
+            "url": res.get("url", ""),
+            "text": res.get("text", "")[:3000]  # First 3k chars
+        })
     
+    # STEP 3: Search sources by relevance to question
+    search_results = vector_db.search_documents(query.question, user_id, n_results=100)
+    relevant_results = [res for res in search_results if res.get("score", 0) > 0.2]
+    
+    # STEP 4: Build context with relevant sources
+    MAX_CONTEXT_TOKENS = 50000
+    CHARS_PER_TOKEN = 4
+    
+    selected_sources = []
+    source_titles = []
+    current_tokens = 0
+    
+    for res in relevant_results:
+        title = res["metadata"].get("title", "Untitled")
+        text = res["text"][:5000] if res["text"] else ""
+        
+        source_text = f"Source: {title}\nContent: {text}\n\n---\n\n"
+        estimated_tokens = len(source_text) // CHARS_PER_TOKEN
+        
+        if current_tokens + estimated_tokens <= MAX_CONTEXT_TOKENS:
+            selected_sources.append(source_text)
+            source_titles.append(title)
+            current_tokens += estimated_tokens
+        else:
+            break
+    
+    # STEP 5: Build research context
+    if selected_sources:
+        research_context = "".join(selected_sources)
+    else:
+        # If no relevant sources, provide ALL sources with full content
+        fallback_sources = []
+        fallback_tokens = 0
+        
+        for s in all_sources:
+            source_text = f"Source: {s['title']}\nURL: {s['url']}\nContent: {s['text']}\n\n---\n\n"
+            estimated_tokens = len(source_text) // CHARS_PER_TOKEN
+            
+            if fallback_tokens + estimated_tokens <= MAX_CONTEXT_TOKENS:
+                fallback_sources.append(source_text)
+                fallback_tokens += estimated_tokens
+            else:
+                break
+        
+        research_context = f"User has {total_sources} saved sources:\n\n" + "".join(fallback_sources) if fallback_sources else f"User has {total_sources} saved sources."
+    
+    # STEP 6: Build messages for Claude
+    messages = []
+    
+    # Add conversation history
+    for msg in conversation_history:
+        messages.append({
+            "role": msg["role"],
+            "content": msg["content"]
+        })
+    
+    # Add current question with research context
     user_content = f"""RESEARCH CONTEXT:
 ---
-{context_text}
+{research_context}
 ---
+
 USER QUESTION: {query.question}"""
+    
+    messages.append({
+        "role": "user",
+        "content": user_content
+    })
+    
+    # STEP 7: System prompt - let Claude be intelligent
+    system_prompt = (
+        "You are a research assistant with access to the user's saved research sources. "
+        "Use the provided sources to answer questions when relevant. "
+        "If the user asks about their sources (how many, what topics, grouping, etc.), use the source list provided. "
+        "If the user asks a general question, respond naturally and conversationally. "
+        "If the user asks about specific research topics, use the relevant source content. "
+        "IMPORTANT: Always use clear, well-structured markdown formatting:\n"
+        "- Use ## for main headings\n"
+        "- Use **bold** for emphasis\n"
+        "- Use numbered lists (1., 2., 3.) for ordered items\n"
+        "- Use bullet points (- ) for unordered lists\n"
+        "- Keep formatting clean and consistent\n"
+        "Be helpful, intelligent, and context-aware. Use [SHOW_SOURCES] at the end only if you referenced specific sources."
+    )
+    
+    # Debug logging
+    print(f"Query: '{query.question}'")
+    print(f"Total sources: {total_sources}")
+    print(f"Relevant sources found: {len(relevant_results)}")
+    print(f"Sources in context: {len(selected_sources)}")
+    print(f"Conversation history: {len(conversation_history)} messages")
 
-    async def event_generator():
-        # Step 1: Send metadata (sources)
-        yield f"metadata:{json.dumps({'sources_used': source_titles})}\n\n"
+    # Get complete response from Claude (no streaming to avoid character issues)
+    try:
+        response = await anthropic_client.messages.create(
+            model=os.getenv("CLAUDE_MODEL", "claude-sonnet-4-5-20250929"),
+            max_tokens=2048,
+            system=system_prompt,
+            messages=messages
+        )
         
-        try:
-            # Step 2: Stream content from Anthropic
-            async with anthropic_client.messages.stream(
-                model=os.getenv("CLAUDE_MODEL", "claude-sonnet-4-5-20250929"),
-                max_tokens=1024,
-                system=system_prompt,
-                messages=[{"role": "user", "content": user_content}]
-            ) as stream:
-                async for text in stream.text_stream:
-                    yield f"content:{text}\n\n"
-                    await asyncio.sleep(0.01) # Small delay for smoother frontend rendering
-        except Exception as e:
-            print(f"Streaming Error: {e}")
-            yield f"error:Failed to generate AI response: {str(e)}\n\n"
-
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
-
-# --- CHAT SESSIONS ---
-
+        full_response = response.content[0].text
+        
+        # Save to session
+        if query.session_id and full_response:
+            try:
+                await db_config.chat_collection.update_one(
+                    {"_id": ObjectId(query.session_id), "user_id": user_id},
+                    {
+                        "$push": {
+                            "messages": {
+                                "$each": [
+                                    {
+                                        "role": "user",
+                                        "content": query.question,
+                                        "timestamp": datetime.utcnow().isoformat()
+                                    },
+                                    {
+                                        "role": "assistant",
+                                        "content": full_response,
+                                        "timestamp": datetime.utcnow().isoformat(),
+                                        "sources_used": source_titles
+                                    }
+                                ]
+                            }
+                        },
+                        "$set": {"last_message": query.question}
+                    }
+                )
+                print(f"Saved conversation to session")
+            except Exception as e:
+                print(f"Error saving to session: {e}")
+        
+        return {
+            "response": full_response,
+            "sources_used": source_titles
+        }
+        
+    except Exception as e:
+        print(f"Claude API Error: {e}")
 @app.get("/chats")
-async def get_chats(token: str = Depends(oauth2_scheme)):
+async def get_chats(type: str | None = None, token: str = Depends(oauth2_scheme)):
     user_id = auth_handler.decode_token(token)
     
+    query = {"user_id": user_id}
+    if type:
+        query["type"] = type
+
     chats = []
-    async for chat in db_config.chat_collection.find({"user_id": user_id}).sort("created_at", -1):
+    async for chat in db_config.chat_collection.find(query).sort("created_at", -1):
         chats.append(db_config.chat_helper(chat))
     return chats
 
@@ -305,10 +382,12 @@ async def create_chat(chat: ChatSession, token: str = Depends(oauth2_scheme)):
     
     new_chat = await db_config.chat_collection.insert_one({
         "title": chat.title,
+        "type": chat.type,
         "created_at": datetime.utcnow().isoformat(),
         "last_message": chat.last_message,
         "user_id": user_id,
-        "results": chat.results or []
+        "results": chat.results or [],
+        "messages": chat.messages or []
     })
     return {"id": str(new_chat.inserted_id), "message": "Chat created"}
 

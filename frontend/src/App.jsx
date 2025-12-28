@@ -4,8 +4,7 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import ExaShowcase from './components/ExaShowcase';
 import Header from './components/Header';
-
-
+import ChatWidget from './components/ChatWidget';
 
 const getUsernameFromToken = (token) => {
   if (!token) return null;
@@ -66,6 +65,15 @@ export default function App() {
                 token={token}
                 handleLogout={handleLogout}
                 username={username}
+              />
+            }
+          />
+          <Route
+            path="/chat-widget"
+            element={
+              <ChatWidget
+                username={username}
+                token={token}
               />
             }
           />
