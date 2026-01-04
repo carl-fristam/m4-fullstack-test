@@ -1,10 +1,10 @@
 import numpy as np
-import pickle
+import json
 import os
 from sentence_transformers import SentenceTransformer
 
 # --- CONFIGURATION ---
-VECTOR_DB_FILE = "vectors.pkl"
+VECTOR_DB_FILE = "vectors.json"
 MODEL_NAME = "all-MiniLM-L6-v2"
 
 print(f"Initializing Vector DB & Loading Model ({MODEL_NAME})...")
@@ -18,17 +18,28 @@ class LocalVectorStore:
 
     def load(self):
         if os.path.exists(self.filename):
-            with open(self.filename, 'rb') as f:
-                self.data = pickle.load(f)
-            print(f"Loaded {len(self.data)} documents from {self.filename}")
+            try:
+                with open(self.filename, 'r') as f:
+                    self.data = json.load(f)
+                print(f"Loaded {len(self.data)} documents from {self.filename}")
+            except Exception as e:
+                print(f"Error loading vector DB: {e}")
+                self.data = []
 
     def save(self):
-        with open(self.filename, 'wb') as f:
-            pickle.dump(self.data, f)
+        with open(self.filename, 'w') as f:
+            # json.dump handles lists OK, but embeddings might be numpy arrays in memory if we aren't careful.
+            # We ensure they are lists before saving.
+            json.dump(self.data, f)
 
     def upsert(self, doc_id, user_id, title, text, embedding):
-        # Remove if exists
-        self.data = [d for d in self.data if d['id'] != doc_id]
+        # Remove if exists (naive implementation)
+        self.data = [d for d in self.data if not (d['id'] == doc_id)]
+        
+        # Ensure embedding is a list for JSON serialization
+        if isinstance(embedding, np.ndarray):
+            embedding = embedding.tolist()
+            
         self.data.append({
             "id": doc_id,
             "user_id": user_id,
@@ -38,9 +49,10 @@ class LocalVectorStore:
         })
         self.save()
 
-    def delete(self, doc_id):
+    def delete(self, doc_id, user_id):
         initial_len = len(self.data)
-        self.data = [d for d in self.data if d['id'] != doc_id]
+        # Strict user_id check
+        self.data = [d for d in self.data if not (d['id'] == doc_id and d['user_id'] == user_id)]
         if len(self.data) < initial_len:
             self.save()
 
@@ -48,7 +60,7 @@ class LocalVectorStore:
         if not self.data:
             return []
         
-        # Filter data by user_id (strict - no legacy fallback)
+        # Filter data by user_id
         user_data = [d for d in self.data if d.get('user_id') == user_id]
         if not user_data:
             return []
@@ -64,13 +76,17 @@ class LocalVectorStore:
         similarities = np.dot(embeddings, query_vec) / (denominators + 1e-9)
         
         # Get top N indices
-        top_indices = np.argsort(similarities)[::-1][:n_results]
+        # If fewer items than n_results, take all
+        k = min(n_results, len(user_data))
+        top_indices = np.argsort(similarities)[::-1][:k]
         
         results = []
         for i, idx in enumerate(top_indices):
             res = user_data[idx]
             score = float(similarities[idx])
-            print(f"Debug: Match found for user {user_id}. Title: {res.get('title')}, Score: {score}")
+            # Only print debug info for high matches
+            if score > 0.3:
+                print(f"Debug: Match found. Title: {res.get('title')}, Score: {score:.4f}")
             results.append({
                 "id": res["id"],
                 "text": res["text"],
@@ -91,8 +107,8 @@ def upsert_document(doc_id: str, user_id: str, title: str, text: str):
     store.upsert(doc_id, user_id, title, text, embedding)
     print(f"Upserted document {doc_id} for user {user_id}")
 
-def delete_document(doc_id: str):
-    store.delete(doc_id)
+def delete_document(doc_id: str, user_id: str):
+    store.delete(doc_id, user_id)
     print(f"Deleted document {doc_id}")
 
 def search_documents(query: str, user_id: str, n_results: int = 5):

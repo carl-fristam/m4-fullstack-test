@@ -186,7 +186,9 @@ async def delete_result(id: str, token: str = Depends(oauth2_scheme)):
     
     await db_config.saved_results_collection.delete_one({"_id": obj_id, "user_id": user_id})
 
-    vector_db.delete_document(id)
+    await db_config.saved_results_collection.delete_one({"_id": obj_id, "user_id": user_id})
+
+    vector_db.delete_document(id, user_id)
 
     return {"message": "Deleted"}
 
@@ -212,42 +214,40 @@ async def chat_query(query: ChatQuery, token: str = Depends(oauth2_scheme)):
         except Exception as e:
             print(f"Error loading session: {e}")
 
-    # STEP 2: Load ALL saved sources for context (Live Vector DB)
-    # We sort by _id (creation time) to ensure the "prefix" of the context remains stable
-    # even when new documents are added to the end. This is crucial for caching.
-    total_sources = await db_config.saved_results_collection.count_documents({"user_id": user_id})
-    
-    all_sources = []
-    # No limit - we want the whole DB "live"
-    # Sort by _id (Oldest -> Newest) for stable cache
-    async for res in db_config.saved_results_collection.find({"user_id": user_id}).sort("_id", 1):
-        all_sources.append({
-            "title": res.get("title", "Untitled"),
-            "url": res.get("url", ""),
-            "text": res.get("text", "") # Load full text
-        })
+    # STEP 2: RAG - Search for RELEVANT sources
+    # Reduced to 5 most relevant to stay within token limits
+    search_results = vector_db.search_documents(query.question, user_id, n_results=5)
 
     # STEP 3: Build distinct Context Block
     source_texts = []
     source_titles = []
-    
-    for s in all_sources:
-        # Format: Title, URL, Content
-        block = f"Source: {s['title']}\nURL: {s['url']}\nContent: {s['text']}\n\n---\n\n"
+    MAX_CONTENT_LENGTH = 2000  # Truncate each source to ~500 tokens max
+
+    for s in search_results:
+        # Format: Title, content
+        # s['metadata'] might contain title, or s['title'] depends on vector_db implementation
+        # In our vector_db.py: results.append({"metadata": {"title": ...}})
+        title = s.get('metadata', {}).get('title', 'Untitled')
+        content = s.get('text', '')
+
+        # Truncate content to prevent token overflow
+        if len(content) > MAX_CONTENT_LENGTH:
+            content = content[:MAX_CONTENT_LENGTH] + "...[truncated]"
+
+        block = f"Source: {title}\nContent: {content}\n\n---\n\n"
         source_texts.append(block)
-        source_titles.append(s['title'])
-        
-    full_context_str = "User's Saved Documents:\n\n" + "".join(source_texts)
+        source_titles.append(title)
+
+    full_context_str = "Relevant Saved Documents:\n\n" + "".join(source_texts)
 
     # STEP 4: Build System Prompt with Caching
-    # We place the huge context inside the system prompt with a cache breakpoint
     
     system_instructions = (
         "You are a research assistant with access to the user's saved research sources. "
-        "The user's entire library is provided above in the context. "
+        "Relevant sources have been retrieved and provided above. "
         "Use these sources to answer questions when relevant. "
         "If the user asks a general question, respond naturally and conversationally. "
-        "IMPORTANT: Always use clear, well-structured markdown formatting:\n"
+        " IMPORTANT: Always use clear, well-structured markdown formatting:\n"
         "- Use ## for main headings\n"
         "- Use **bold** for emphasis\n"
         "- Use numbered lists (1., 2., 3.) for ordered items\n"
@@ -261,7 +261,7 @@ async def chat_query(query: ChatQuery, token: str = Depends(oauth2_scheme)):
         {
             "type": "text", 
             "text": full_context_str,
-            "cache_control": {"type": "ephemeral"} # <--- THE CACHE BREAKPOINT
+            "cache_control": {"type": "ephemeral"} 
         },
         {
             "type": "text", 
@@ -271,12 +271,17 @@ async def chat_query(query: ChatQuery, token: str = Depends(oauth2_scheme)):
 
     # STEP 5: Build User Messages (History + Question)
     messages = []
-    
+
     # Add conversation history
     for msg in conversation_history:
+        # Normalize role: 'ai' -> 'assistant' for Claude API
+        role = "assistant" if msg["role"] == "ai" else msg["role"]
+        # Use 'text' field (what we save) or fallback to 'content'
+        content = msg.get("text", msg.get("content", ""))
+
         messages.append({
-            "role": msg["role"],
-            "content": msg["content"]
+            "role": role,
+            "content": content
         })
     
     # Add current question
@@ -287,7 +292,7 @@ async def chat_query(query: ChatQuery, token: str = Depends(oauth2_scheme)):
     
     # Debug logging
     print(f"Query: '{query.question}'")
-    print(f"Total sources in context: {total_sources}")
+    print(f"Top-K RAG results: {len(search_results)}")
     print(f"Conversation history: {len(conversation_history)} messages")
 
     # Get complete response from Claude
@@ -347,6 +352,7 @@ async def chat_query(query: ChatQuery, token: str = Depends(oauth2_scheme)):
         
     except Exception as e:
         print(f"Claude API Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 @app.get("/chats")
 async def get_chats(type: str | None = None, token: str = Depends(oauth2_scheme)):
     user_id = auth_handler.decode_token(token)

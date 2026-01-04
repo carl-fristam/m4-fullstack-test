@@ -287,7 +287,7 @@ export default function Dashboard({ token, handleLogout, username }) {
     });
 
     return (
-        <div className="h-screen bg-slate-50 flex overflow-hidden">
+        <div className="h-screen bg-background flex overflow-hidden">
             <main
                 className="flex-1 flex gap-10 items-start w-full h-full pt-24"
             >
@@ -296,16 +296,16 @@ export default function Dashboard({ token, handleLogout, username }) {
                     {/* HISTORY OVERLAY BACKDROP */}
                     {isHistoryOpen && (
                         <div
-                            className="fixed inset-0 z-[90] bg-slate-900/5 transition-opacity duration-300 pointer-events-auto"
+                            className="fixed inset-0 z-[90] bg-black/30 transition-opacity duration-300 pointer-events-auto"
                             onClick={() => setIsHistoryOpen(false)}
                         ></div>
                     )}
 
                     <aside
-                        className={`fixed left-0 top-[20vh] bottom-[20vh] w-80 bg-blue-50/50 backdrop-blur-md z-[100] transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] flex flex-col shadow-[10px_0_40px_-20px_rgba(0,0,0,0.1)] rounded-tr-[32px] rounded-br-[32px] border-r border-blue-100/30 ${isHistoryOpen ? "translate-x-0" : "-translate-x-full"}`}
+                        className={`fixed left-0 top-[20vh] bottom-[20vh] w-80 bg-surface/95 backdrop-blur-md z-[100] transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] flex flex-col shadow-[10px_0_40px_-20px_rgba(0,0,0,0.5)] rounded-tr-[32px] rounded-br-[32px] border-r border-border ${isHistoryOpen ? "translate-x-0" : "-translate-x-full"}`}
                     >
-                        <div className="px-8 py-8 border-b border-slate-200/50">
-                            <h3 className="text-[11px] font-black uppercase text-blue-600/60 tracking-[0.25em]">Research History</h3>
+                        <div className="px-8 py-8 border-b border-border">
+                            <h3 className="text-[11px] font-black uppercase text-primary-light tracking-[0.25em]">Research History</h3>
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-4 space-y-2 relative scrollbar-hide">
@@ -320,9 +320,9 @@ export default function Dashboard({ token, handleLogout, username }) {
                                     onClick={() => {
                                         setActiveChat(chat);
                                     }}
-                                    className={`group relative p-5 rounded-[22px] text-sm cursor-pointer transition-all border ${activeChat?.id === chat.id ? "bg-white border-slate-200 shadow-lg shadow-slate-200/50 scale-[1.02] z-10" : "border-transparent hover:bg-white/80 hover:border-slate-100 hover:shadow-sm"}`}>
-                                    <div className={`font-bold truncate pr-6 ${activeChat?.id === chat.id ? "text-blue-600" : "text-slate-600 group-hover:text-blue-600/80"}`}>{chat.title || "Untitled Chat"}</div>
-                                    <div className="text-[10px] text-slate-400 mt-1.5 font-bold tracking-tight uppercase flex justify-between items-center">
+                                    className={`group relative p-5 rounded-[22px] text-sm cursor-pointer transition-all border ${activeChat?.id === chat.id ? "bg-surface-light border-primary shadow-lg shadow-primary/20 scale-[1.02] z-10" : "border-transparent hover:bg-surface-light/60 hover:border-border hover:shadow-sm"}`}>
+                                    <div className={`font-bold truncate pr-6 ${activeChat?.id === chat.id ? "text-primary-light" : "text-slate-300 group-hover:text-primary-light"}`}>{chat.title || "Untitled Chat"}</div>
+                                    <div className="text-[10px] text-slate-500 mt-1.5 font-bold tracking-tight uppercase flex justify-between items-center">
                                         <span>{new Date(chat.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                                         <span className="opacity-0 group-hover:opacity-100 transition-opacity">View Details →</span>
                                     </div>
@@ -332,7 +332,7 @@ export default function Dashboard({ token, handleLogout, username }) {
                                             e.stopPropagation();
                                             deleteChat(e, chat.id);
                                         }}
-                                        className="absolute right-3 top-4 w-7 h-7 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-all"
+                                        className="absolute right-3 top-4 w-7 h-7 flex items-center justify-center text-slate-600 hover:text-red-400 hover:bg-red-950/30 rounded-full opacity-0 group-hover:opacity-100 transition-all"
                                         title="Delete chat"
                                     >
                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -340,7 +340,7 @@ export default function Dashboard({ token, handleLogout, username }) {
                                 </div>
                             ))}
                             {/* Sticky Gradient Fade at Bottom */}
-                            <div className="sticky bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-slate-50 to-transparent pointer-events-none z-20"></div>
+                            <div className="sticky bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-surface to-transparent pointer-events-none z-20"></div>
                         </div>
                     </aside>
 
@@ -369,17 +369,17 @@ export default function Dashboard({ token, handleLogout, username }) {
                     {undoState && (
                         <button
                             onClick={undoDelete}
-                            className="absolute -right-4 top-12 z-50 bg-white text-blue-600 w-10 h-10 rounded-lg shadow-xl shadow-blue-900/10 border border-blue-600 flex items-center justify-center hover:scale-110 transition-transform animate-pop-in cursor-pointer"
+                            className="absolute -right-4 top-12 z-50 bg-surface text-primary-light w-10 h-10 rounded-lg shadow-xl shadow-primary/20 border border-primary flex items-center justify-center hover:scale-110 transition-transform animate-pop-in cursor-pointer"
                             title="Undo Delete"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
                         </button>
                     )}
 
-                    <div className="bg-white border border-slate-100 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] overflow-hidden rounded-xl transition-shadow hover:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.08)] w-full overflow-x-auto">
+                    <div className="bg-surface border border-border shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden rounded-xl transition-shadow hover:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.4)] w-full overflow-x-auto">
                         <div className="p-4">
-                            <h1 className="text-3xl font-bold text-blue-600">Saved sources</h1>
-                            <p className="text-slate-500 mt-2">Overview of your saved research papers.</p>
+                            <h1 className="text-3xl font-bold text-primary-light">Saved sources</h1>
+                            <p className="text-slate-400 mt-2">Overview of your saved research papers.</p>
                             <div className="flex flex-wrap items-center justify-between gap-4 mt-6">
                                 {/* LEFT: TAG FILTERS */}
                                 {allTags.length > 0 && (
@@ -390,15 +390,15 @@ export default function Dashboard({ token, handleLogout, username }) {
                                                 key={tag}
                                                 onClick={() => toggleTagSelect(tag)}
                                                 className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wide rounded-full border transition-all ${selectedTags.includes(tag)
-                                                    ? "bg-blue-600 text-white border-blue-600"
-                                                    : "bg-white text-slate-500 border-slate-200 hover:border-blue-600 hover:text-blue-600"
+                                                    ? "bg-primary text-white border-primary"
+                                                    : "bg-surface-light text-slate-300 border-border hover:border-primary-light hover:text-primary-light"
                                                     }`}
                                             >
                                                 {tag}
                                             </button>
                                         ))}
                                         {selectedTags.length > 0 && (
-                                            <button onClick={() => setSelectedTags([])} className="text-[10px] font-bold uppercase text-slate-400 hover:text-red-600 hover:underline ml-2 tracking-tight">
+                                            <button onClick={() => setSelectedTags([])} className="text-[10px] font-bold uppercase text-slate-400 hover:text-red-400 hover:underline ml-2 tracking-tight">
                                                 Clear
                                             </button>
                                         )}
@@ -410,15 +410,15 @@ export default function Dashboard({ token, handleLogout, username }) {
                                     <button
                                         onClick={() => setShowFavorites(!showFavorites)}
                                         className={`px-4 py-2 text-[10px] font-bold uppercase tracking-wider rounded-full border transition-all ${showFavorites
-                                            ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-900/10"
-                                            : "bg-white text-slate-500 border-slate-200 hover:border-blue-400 hover:text-blue-600"
+                                            ? "bg-primary text-white border-primary shadow-lg shadow-primary/20"
+                                            : "bg-surface-light text-slate-300 border-border hover:border-primary-light hover:text-primary-light"
                                             }`}
                                     >
                                         ★ Favorites Only
                                     </button>
                                     <div className="relative">
                                         <input
-                                            className="pl-10 pr-4 py-2 border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 outline-none text-xs w-48 bg-white rounded-full transition-all focus:shadow-sm placeholder:text-slate-400 text-slate-700"
+                                            className="pl-10 pr-4 py-2 border border-border focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none text-xs w-48 bg-surface-light rounded-full transition-all focus:shadow-sm placeholder:text-slate-500 text-slate-100"
                                             placeholder="Search keywords..."
                                             value={filter}
                                             onChange={(e) => setFilter(e.target.value)}
@@ -432,7 +432,7 @@ export default function Dashboard({ token, handleLogout, username }) {
                         </div>
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="bg-blue-600 border-b border-blue-700 shadow-sm">
+                                <tr className="bg-primary border-b border-primary-dark shadow-sm">
                                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white w-12 text-center">Fav</th>
                                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white min-w-[300px] whitespace-normal">Source Title / URL</th>
                                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white w-1/5">Tags</th>
@@ -440,21 +440,21 @@ export default function Dashboard({ token, handleLogout, username }) {
                                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white text-right w-24">Action</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-border/30">
                                 {filteredSources.map((s) => (
                                     <tr
                                         key={s.id}
-                                        className={`hover:bg-slate-50 transition-all duration-300 group ${deletingId === s.id ? "opacity-0 scale-95" : "opacity-100"}`}
+                                        className={`hover:bg-surface-light transition-all duration-300 group ${deletingId === s.id ? "opacity-0 scale-95" : "opacity-100"}`}
                                     >
                                         <td className="px-6 py-4 text-center cursor-pointer" onClick={() => toggleFavorite(s)}>
-                                            <span className={`text-xl ${s.is_favorite ? "text-amber-400" : "text-slate-200 group-hover:text-slate-300"}`}>★</span>
+                                            <span className={`text-xl ${s.is_favorite ? "text-amber-400" : "text-slate-700 group-hover:text-slate-500"}`}>★</span>
                                         </td>
                                         <td className="px-6 py-4">
                                             <a
                                                 href={s.url}
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="font-bold text-slate-900 text-sm mb-1 break-words whitespace-normal hover:underline block"
+                                                className="font-bold text-slate-100 text-sm mb-1 break-words whitespace-normal hover:underline hover:text-primary-light block"
                                             >
                                                 {s.title || "Untitled Document"}
                                             </a>
@@ -463,40 +463,40 @@ export default function Dashboard({ token, handleLogout, username }) {
                                         <td className="px-6 py-4">
                                             <div className="flex flex-wrap gap-2 mb-2">
                                                 {s.tags?.map(t => (
-                                                    <span key={t} className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-600 border border-slate-200">
+                                                    <span key={t} className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-surface-light text-slate-300 border border-border">
                                                         {t}
-                                                        <button onClick={() => removeTag(s, t)} className="ml-1 hover:text-red-500">×</button>
+                                                        <button onClick={() => removeTag(s, t)} className="ml-1 hover:text-red-400">×</button>
                                                     </span>
                                                 ))}
                                                 <button
                                                     onClick={() => setEditingId(editingId === s.id ? null : s.id)}
-                                                    className="tag-trigger px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-white border border-slate-200 text-slate-400 hover:border-blue-600 hover:text-blue-600 transition-colors"
+                                                    className="tag-trigger px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-background border border-border text-slate-500 hover:border-primary-light hover:text-primary-light transition-colors"
                                                 >
                                                     {editingId === s.id ? "Close" : "+ Tag"}
                                                 </button>
                                             </div>
                                             {editingId === s.id && (
-                                                <div className="tag-popup absolute z-10 bg-white border border-slate-200 shadow-xl p-2 rounded-xl mt-1 flex flex-col gap-2 min-w-[160px]">
+                                                <div className="tag-popup absolute z-10 bg-surface border border-border shadow-xl p-2 rounded-xl mt-1 flex flex-col gap-2 min-w-[160px]">
                                                     <div className="flex gap-1">
                                                         <input
-                                                            className="px-2 py-1 text-xs border border-slate-300 outline-none focus:border-blue-600 w-full rounded-l-lg"
+                                                            className="px-2 py-1 text-xs border border-border bg-surface-light text-slate-100 outline-none focus:border-primary w-full rounded-l-lg placeholder:text-slate-500"
                                                             placeholder="New tag..."
                                                             value={tagInput}
                                                             onChange={e => setTagInput(e.target.value)}
                                                             autoFocus
                                                             onKeyDown={e => e.key === 'Enter' && addTag(s.id, s.tags || [])}
                                                         />
-                                                        <button onClick={() => addTag(s.id, s.tags || [])} className="px-2 py-1 bg-blue-600 text-white text-xs rounded-r-lg hover:bg-blue-700 transition-colors">OK</button>
+                                                        <button onClick={() => addTag(s.id, s.tags || [])} className="px-2 py-1 bg-primary text-white text-xs rounded-r-lg hover:bg-primary-dark transition-colors">OK</button>
                                                     </div>
                                                     {/* Suggestions */}
                                                     {allTags.filter(t => t.toLowerCase().includes(tagInput.toLowerCase()) && !s.tags?.includes(t)).length > 0 && (
-                                                        <div className="flex flex-col gap-1 max-h-32 overflow-y-auto border-t border-slate-100 pt-1">
-                                                            <span className="text-[9px] uppercase font-bold text-slate-400 px-1">Suggestions</span>
+                                                        <div className="flex flex-col gap-1 max-h-32 overflow-y-auto border-t border-border/50 pt-1">
+                                                            <span className="text-[9px] uppercase font-bold text-slate-500 px-1">Suggestions</span>
                                                             {allTags.filter(t => t.toLowerCase().includes(tagInput.toLowerCase()) && !s.tags?.includes(t)).map(t => (
                                                                 <button
                                                                     key={t}
                                                                     onClick={() => addTag(s.id, s.tags || [], t)}
-                                                                    className="text-left text-xs px-2 py-1 hover:bg-slate-50 text-slate-700 hover:text-black rounded-md font-medium truncate"
+                                                                    className="text-left text-xs px-2 py-1 hover:bg-surface-light text-slate-300 hover:text-slate-100 rounded-md font-medium truncate"
                                                                 >
                                                                     {t}
                                                                 </button>
@@ -510,19 +510,19 @@ export default function Dashboard({ token, handleLogout, username }) {
                                             {/* NOTES COLUMN */}
                                             {s.note ? (
                                                 <div onClick={(e) => openNote(s, e)} className="cursor-pointer group/note">
-                                                    <p className="text-xs text-slate-500 line-clamp-2 hover:text-slate-900 transition-colors">{s.note}</p>
+                                                    <p className="text-xs text-slate-400 line-clamp-2 hover:text-slate-200 transition-colors">{s.note}</p>
                                                 </div>
                                             ) : (
                                                 <button
                                                     onClick={(e) => openNote(s, e)}
-                                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-900 opacity-0 group-hover:opacity-50 hover:!opacity-100 transition-all font-bold text-lg"
+                                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-light text-slate-300 opacity-0 group-hover:opacity-50 hover:!opacity-100 transition-all font-bold text-lg"
                                                 >
                                                     +
                                                 </button>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <button onClick={(e) => removeSource(s.id, e)} className="text-slate-300 hover:text-[#E40000] p-2 transition-colors">
+                                            <button onClick={(e) => removeSource(s.id, e)} className="text-slate-600 hover:text-red-400 p-2 transition-colors">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                             </button>
                                         </td>
@@ -544,12 +544,12 @@ export default function Dashboard({ token, handleLogout, username }) {
                         <>
                             <div className="fixed inset-0 z-[60]" onClick={() => saveNote()}></div>
                             <div
-                                className="fixed z-[70] bg-white w-64 p-4 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-slate-100 animate-pop-in"
+                                className="fixed z-[70] bg-surface w-64 p-4 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.4)] border border-border animate-pop-in"
                                 style={{ top: activeNote.y, left: activeNote.x }}
                             >
                                 <h4 className="text-[10px] font-bold uppercase text-slate-400 mb-2 tracking-widest">Edit Note</h4>
                                 <textarea
-                                    className="w-full text-sm text-slate-600 bg-slate-50 border-none rounded-lg p-2 resize-none outline-none focus:ring-1 focus:ring-slate-200 h-24 mb-2 placeholder:text-slate-300"
+                                    className="w-full text-sm text-slate-200 bg-surface-light border-none rounded-lg p-2 resize-none outline-none focus:ring-1 focus:ring-border h-24 mb-2 placeholder:text-slate-500"
                                     placeholder="Add a note..."
                                     value={noteInput}
                                     onChange={(e) => setNoteInput(e.target.value)}
@@ -558,7 +558,7 @@ export default function Dashboard({ token, handleLogout, username }) {
                                 <div className="flex justify-end">
                                     <button
                                         onClick={saveNote}
-                                        className="px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-lg hover:scale-105 transition-transform shadow-md shadow-blue-200"
+                                        className="px-3 py-1 bg-primary text-white text-xs font-bold rounded-lg hover:scale-105 transition-transform shadow-md shadow-primary/30"
                                     >
                                         Save
                                     </button>
