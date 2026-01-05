@@ -1,6 +1,6 @@
 # Research Tool
 
-A custom research assistant I built for my MSc. It helps me find, organize, and chat with research papers.
+A custom research assistant I built for my MSc. Used to find, organize, and chat with research papers.
 
 ## What is it?
 It's a full-stack web app that combines:
