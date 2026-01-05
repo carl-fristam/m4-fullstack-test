@@ -2,6 +2,8 @@
 
 A custom research assistant I built for my MSc. Used to find, organize, and chat with research papers.
 
+![alt text](image.png)
+
 ## What is it?
 It's a full-stack web app that combines:
 1.  **Exa AI**: To search for high-quality academic papers.
