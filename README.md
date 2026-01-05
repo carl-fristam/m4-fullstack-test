@@ -2,7 +2,7 @@
 
 A custom research assistant I built for my MSc. Used to find, organize, and chat with research papers.
 
-![alt text](image-1.png)
+![alt text](image.png)
 
 ## What is it?
 It's a full-stack web app that combines:
