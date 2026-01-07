@@ -41,7 +41,7 @@ class ChatService:
         # 6. Call LLM
         response = await self.client.messages.create(
             model=settings.CLAUDE_MODEL,
-            max_tokens=2048,
+            max_tokens=8192,
             system=system_message,
             messages=messages,
             extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"}

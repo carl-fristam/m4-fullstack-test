@@ -19,7 +19,7 @@ class ContextBuilder:
         # 3. Build Context (RAG)
         source_texts = []
         source_titles = []
-        MAX_LEN = 2000
+        MAX_LEN = 4000
 
         for s in search_results:
             title = s['metadata'].get('title', 'Untitled')

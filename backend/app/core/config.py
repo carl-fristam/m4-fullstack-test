@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     # External APIs
     ANTHROPIC_API_KEY: str
     EXA_API_KEY: str
-    CLAUDE_MODEL: str = "claude-4-5-sonnet-20250929"
+    CLAUDE_MODEL: str = "claude-haiku-4-5-20251001"
     
     # CORS
     ALLOWED_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:8000"]
