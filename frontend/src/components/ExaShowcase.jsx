@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import * as chatService from "../api/chat";
 import * as knowledgeService from "../api/knowledge";
 import Sidebar from "./exa/Sidebar";
@@ -6,7 +6,7 @@ import SearchInput from "./exa/SearchInput";
 import SearchResults from "./exa/SearchResults";
 import PreviewModal from "./exa/PreviewModal";
 
-export default function ExaShowcase({ token, handleLogout, username }) {
+export default function ExaShowcase({ token, handleLogout }) {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -14,7 +14,7 @@ export default function ExaShowcase({ token, handleLogout, username }) {
 
     const [chats, setChats] = useState([]);
     const [currentChatId, setCurrentChatId] = useState(null);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const [savedItems, setSavedItems] = useState([]);
 
@@ -25,15 +25,26 @@ export default function ExaShowcase({ token, handleLogout, username }) {
     const [previewExpanded, setPreviewExpanded] = useState(false);
     const [showAllResults, setShowAllResults] = useState(false);
 
-    useEffect(() => {
-        if (token) {
-            const savedChatId = sessionStorage.getItem("active_chat_id");
-            loadChats(savedChatId);
-            loadSavedItems();
+    const selectChat = useCallback((chat) => {
+        setCurrentChatId(chat.id);
+        sessionStorage.setItem("active_chat_id", chat.id);
+        setQuery(chat.title);
+        // Chats store results in 'results' list, Exa expects { results: [...] }
+        if (chat.results && chat.results.length > 0) {
+            setResults({ results: chat.results });
+        } else {
+            setResults(null);
         }
-    }, [token]);
+    }, []);
 
-    const loadChats = async (autoSelectId = null) => {
+    const createNewChat = () => {
+        setCurrentChatId(null);
+        setQuery("");
+        setResults(null);
+        sessionStorage.removeItem("active_chat_id");
+    };
+
+    const loadChats = useCallback(async (autoSelectId = null) => {
         try {
             const data = await chatService.getChats("research");
             setChats(data);
@@ -44,23 +55,16 @@ export default function ExaShowcase({ token, handleLogout, username }) {
         } catch (err) {
             console.error("Failed to load chats", err);
         }
-    };
+    }, [selectChat]);
 
-    const loadSavedItems = async () => {
+    const loadSavedItems = useCallback(async () => {
         try {
             const data = await knowledgeService.getSavedResults();
             setSavedItems(data);
         } catch (err) {
             console.error("Failed to load saved items", err);
         }
-    };
-
-    const createNewChat = () => {
-        setCurrentChatId(null);
-        setQuery("");
-        setResults(null);
-        sessionStorage.removeItem("active_chat_id");
-    };
+    }, []);
 
     const deleteChat = async (e, id) => {
         e.stopPropagation();
@@ -69,17 +73,13 @@ export default function ExaShowcase({ token, handleLogout, username }) {
         if (currentChatId === id) createNewChat();
     };
 
-    const selectChat = (chat) => {
-        setCurrentChatId(chat.id);
-        sessionStorage.setItem("active_chat_id", chat.id);
-        setQuery(chat.title);
-        // Chats store results in 'results' list, Exa expects { results: [...] }
-        if (chat.results && chat.results.length > 0) {
-            setResults({ results: chat.results });
-        } else {
-            setResults(null);
+    useEffect(() => {
+        if (token) {
+            const savedChatId = sessionStorage.getItem("active_chat_id");
+            loadChats(savedChatId);
+            loadSavedItems();
         }
-    };
+    }, [token, loadChats, loadSavedItems]);
 
     const handleSearch = async (e) => {
         if (e) e.preventDefault();
@@ -196,8 +196,14 @@ export default function ExaShowcase({ token, handleLogout, username }) {
                     createNewChat={createNewChat}
                 />
 
+                {isSidebarOpen && (
+                    <div
+                        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 transition-opacity duration-500"
+                    />
+                )}
+
                 <main
-                    className={`flex-1 overflow-y-auto bg-background relative transition-all duration-500 ${isSidebarOpen ? 'ml-64' : 'ml-0'}`}
+                    className={`flex-1 overflow-y-auto bg-background relative transition-all duration-500`}
                     style={previewUrl ? { paddingRight: previewExpanded ? '72vw' : '27vw' } : {}}
                 >
                     <SearchInput

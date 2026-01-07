@@ -32,3 +32,10 @@ __pycache__/
 *.sw?
 .env
 backend/.env
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

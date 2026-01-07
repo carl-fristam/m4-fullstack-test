@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -24,7 +24,6 @@ const getUsernameFromToken = (token) => {
 
 export default function App() {
 
-  const [loading, setLoading] = useState(false); // Kept for consistency if needed by global spinners, though mainly used in Dashboard now
   const [token, setToken] = useState(localStorage.getItem("token"));
   const username = getUsernameFromToken(token);
 

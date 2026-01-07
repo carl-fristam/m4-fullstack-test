@@ -12,7 +12,7 @@ export default function Sidebar({
     return (
         <>
             {/* Sidebar */}
-            <aside className={`fixed left-0 top-20 bottom-0 w-72 bg-surface/95 backdrop-blur-xl border-r border-border flex flex-col z-40 transition-transform duration-500 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <aside className={`fixed top-28 bottom-100 w-72 bg-surface/95 backdrop-blur-xl flex flex-col z-40 transition-transform duration-500 rounded-r-3xl ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 {/* Header */}
                 <div className="p-4 space-y-3">
                     <button
@@ -49,15 +49,13 @@ export default function Sidebar({
                         <div
                             key={chat.id}
                             onClick={() => selectChat(chat)}
-                            className={`group relative p-4 rounded-xl cursor-pointer transition-all border ${
-                                currentChatId === chat.id
-                                    ? "bg-primary/10 border-primary/30"
-                                    : "border-transparent hover:bg-surface-light hover:border-border"
-                            }`}
+                            className={`group relative p-4 rounded-xl cursor-pointer transition-all border ${currentChatId === chat.id
+                                ? "bg-primary/10 border-primary/30"
+                                : "border-transparent hover:bg-surface-light hover:border-border"
+                                }`}
                         >
-                            <div className={`font-medium text-sm truncate pr-6 ${
-                                currentChatId === chat.id ? "text-primary" : "text-text-primary"
-                            }`}>
+                            <div className={`font-medium text-sm truncate pr-6 ${currentChatId === chat.id ? "text-primary" : "text-text-primary"
+                                }`}>
                                 {chat.title || "Untitled Search"}
                             </div>
                             <div className="text-xs text-text-muted mt-1">

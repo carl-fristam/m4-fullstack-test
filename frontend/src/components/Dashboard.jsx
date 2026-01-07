@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import * as knowledgeService from "../api/knowledge";
 import * as chatService from "../api/chat";
 import DashboardSidebar from "./dashboard/DashboardSidebar";
@@ -8,7 +8,6 @@ import NotePopup from "./dashboard/NotePopup";
 export default function Dashboard({ token, handleLogout, username }) {
     const [sources, setSources] = useState([]);
     const [filter, setFilter] = useState("");
-    const [loading, setLoading] = useState(false);
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [chatWidth, setChatWidth] = useState(450);
     const [isResizing, setIsResizing] = useState(false);
@@ -30,7 +29,7 @@ export default function Dashboard({ token, handleLogout, username }) {
     const [chats, setChats] = useState([]);
     const [activeChat, setActiveChat] = useState(null);
 
-    const loadChats = async () => {
+    const loadChats = useCallback(async () => {
         if (!token) return;
         try {
             const data = await chatService.getChats("knowledge_base");
@@ -38,7 +37,7 @@ export default function Dashboard({ token, handleLogout, username }) {
         } catch (err) {
             console.error("Failed to load chats", err);
         }
-    };
+    }, [token]);
 
     const deleteChat = async (e, id) => {
         e.stopPropagation();
@@ -48,8 +47,8 @@ export default function Dashboard({ token, handleLogout, username }) {
     };
 
     useEffect(() => {
-        if (token) loadChats();
-    }, [token]);
+        loadChats();
+    }, [loadChats]);
 
     const openNote = (s, e) => {
         e.stopPropagation();
@@ -79,9 +78,8 @@ export default function Dashboard({ token, handleLogout, username }) {
         }
     };
 
-    const loadSources = async () => {
+    const loadSources = useCallback(async () => {
         if (!token) return;
-        setLoading(true);
         try {
             const data = await knowledgeService.getSavedResults();
             const sortedData = data.sort((a, b) => new Date(b.saved_at || 0) - new Date(a.saved_at || 0));
@@ -91,14 +89,12 @@ export default function Dashboard({ token, handleLogout, username }) {
             if (err.response && err.response.status === 401) {
                 handleLogout();
             }
-        } finally {
-            setLoading(false);
         }
-    };
+    }, [token, handleLogout]);
 
     useEffect(() => {
-        if (token) loadSources();
-    }, [token]);
+        loadSources();
+    }, [loadSources]);
 
     // Handle clicking outside to close Tag Input
     useEffect(() => {

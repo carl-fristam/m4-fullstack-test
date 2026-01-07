@@ -65,11 +65,10 @@ export default function KnowledgeTable({
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={() => setShowFavorites(!showFavorites)}
-                                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all ${
-                                    showFavorites
-                                        ? "bg-primary text-background"
-                                        : "bg-surface-light border border-border text-text-secondary hover:border-border-light hover:text-text-primary"
-                                }`}
+                                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all ${showFavorites
+                                    ? "bg-primary text-background"
+                                    : "bg-surface-light border border-border text-text-secondary hover:border-border-light hover:text-text-primary"
+                                    }`}
                             >
                                 <svg className="w-4 h-4" fill={showFavorites ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
@@ -141,20 +140,18 @@ export default function KnowledgeTable({
                             {filteredSources.map((s, idx) => (
                                 <tr
                                     key={s.id}
-                                    className={`group hover:bg-surface-light/50 transition-all duration-200 ${
-                                        deletingId === s.id ? "opacity-0 scale-95" : "opacity-100"
-                                    }`}
+                                    className={`group hover:bg-surface-light/50 transition-all duration-200 ${deletingId === s.id ? "opacity-0 scale-95" : "opacity-100"
+                                        }`}
                                     style={{ animationDelay: `${idx * 30}ms` }}
                                 >
                                     {/* Favorite */}
                                     <td className="px-5 py-4 text-center border-b border-border/50">
                                         <button
                                             onClick={() => toggleFavorite(s)}
-                                            className={`text-lg transition-all ${
-                                                s.is_favorite
-                                                    ? "text-primary hover:text-primary-dark"
-                                                    : "text-text-muted hover:text-primary opacity-30 group-hover:opacity-100"
-                                            }`}
+                                            className={`text-lg transition-all ${s.is_favorite
+                                                ? "text-primary hover:text-primary-dark"
+                                                : "text-text-muted hover:text-primary opacity-30 group-hover:opacity-100"
+                                                }`}
                                         >
                                             <svg className="w-5 h-5" fill={s.is_favorite ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
@@ -178,7 +175,7 @@ export default function KnowledgeTable({
                                     </td>
 
                                     {/* Tags */}
-                                    <td className="px-5 py-4 border-b border-border/50">
+                                    <td className="px-5 py-4 border-b border-border/50 relative">
                                         <div className="flex flex-wrap gap-1.5 mb-2">
                                             {s.tags?.map(t => (
                                                 <span key={t} className="tag-pill group/tag">
@@ -206,7 +203,7 @@ export default function KnowledgeTable({
                                             <div className="tag-popup absolute z-30 bg-surface border border-border shadow-elevated p-3 rounded-xl mt-1 min-w-[180px] animate-fade-in">
                                                 <div className="flex gap-1.5">
                                                     <input
-                                                        className="flex-1 px-3 py-2 text-xs bg-surface-light border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:border-primary outline-none"
+                                                        className="flex-1 px-3 py-2 text-xs bg-surface-light border-border rounded-lg text-text-primary placeholder:text-text-muted focus:border-primary outline-none"
                                                         placeholder="New tag..."
                                                         value={tagInput}
                                                         onChange={e => setTagInput(e.target.value)}

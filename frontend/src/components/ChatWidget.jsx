@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import * as chatService from '../api/chat';
 
 export default function ChatWidget({
-    username, token, isOpen, toggleChat, width, setWidth, isResizing, setIsResizing, isEmbedded = false,
+    username, isOpen, toggleChat, width, setWidth, isResizing, setIsResizing, isEmbedded = false,
     activeChat, onNewChat, onChatUpdated, onToggleHistory
 }) {
     const [messages, setMessages] = useState(() => {
@@ -16,7 +16,6 @@ export default function ChatWidget({
     const [sessionId, setSessionId] = useState(() => {
         return localStorage.getItem('kb_chat_session_id');
     });
-    const [expandedMessages, setExpandedMessages] = useState(new Set());
     const scrollRef = useRef(null);
     const textareaRef = useRef(null);
 
