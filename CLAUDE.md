@@ -71,7 +71,7 @@ Required environment variables in `backend/.env`:
 - `ANTHROPIC_API_KEY`: Claude API key
 - `EXA_API_KEY`: Exa AI search API key
 - `MONGO_DETAILS`: MongoDB connection string (default: `mongodb://mongo:27017`)
-- `CLAUDE_MODEL`: Model name (default: `claude-4-5-sonnet-20250929`)
+- `CLAUDE_MODEL`: Model name (default: `claude-haiku-4-5-20251001`)
 
 ## Architecture Overview
 

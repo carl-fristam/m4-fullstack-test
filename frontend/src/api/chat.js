@@ -16,7 +16,7 @@ export const deleteChat = async (id) => {
     return response.data;
 };
 
-export const sendQuery = async (query, sessionId = null) => {
-    const response = await client.post('/chats/query', { question: query, session_id: sessionId });
+export const sendQuery = async (query, sessionId = null, chatType = 'thesis') => {
+    const response = await client.post('/chats/query', { question: query, session_id: sessionId, chat_type: chatType });
     return response.data;
 };

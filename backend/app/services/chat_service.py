@@ -7,6 +7,7 @@ from app.models.chat import ChatQuery
 from app.services.vector_service import get_vector_service
 from app.services.prompt_builder import prompt_builder
 from app.services.context_builder import context_builder
+from app.services.query_classifier import query_classifier
 
 class ChatService:
     def __init__(self):
@@ -26,11 +27,18 @@ class ChatService:
             if session and session.get("messages"):
                 conversation_history = session["messages"][-10:]
 
-        # 2. Build Context (Library + RAG)
-        library_context, rag_context, source_titles = await context_builder.build(query.question, user_id)
+        # 2. Classify Query Intent
+        context_need = await query_classifier.classify(query.question, conversation_history)
 
-        # 3. Build System Prompt
-        system_message = prompt_builder.build_system_message(library_context, rag_context)
+        # 3. Conditionally Build Context
+        library_context, rag_context, source_titles = await context_builder.build(
+            query.question,
+            user_id,
+            context_need=context_need
+        )
+
+        # 4. Build System Prompt
+        system_message = prompt_builder.build_system_message(library_context, rag_context, query.chat_type)
         # 5. Messages
         messages = []
         for msg in conversation_history:

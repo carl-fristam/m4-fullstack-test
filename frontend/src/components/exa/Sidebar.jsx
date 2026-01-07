@@ -12,7 +12,7 @@ export default function Sidebar({
     return (
         <>
             {/* Sidebar */}
-            <aside className={`fixed top-28 bottom-100 w-72 bg-surface/95 backdrop-blur-xl flex flex-col z-40 transition-transform duration-500 rounded-r-3xl ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <aside className={`fixed left-0 top-28 bottom-100 w-72 bg-surface/95 backdrop-blur-xl flex flex-col z-40 transition-transform duration-500 rounded-r-3xl ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 {/* Header */}
                 <div className="p-4 space-y-3">
                     <button

@@ -200,7 +200,7 @@ export default function KnowledgeTable({
 
                                         {/* Tag popup */}
                                         {editingId === s.id && (
-                                            <div className="tag-popup absolute z-30 bg-surface border border-border shadow-elevated p-3 rounded-xl mt-1 min-w-[180px] animate-fade-in">
+                                            <div className="tag-popup absolute z-10 bg-surface border border-border shadow-elevated p-3 rounded-xl mt-1 min-w-[180px] animate-fade-in">
                                                 <div className="flex gap-1.5">
                                                     <input
                                                         className="flex-1 px-3 py-2 text-xs bg-surface-light border-border rounded-lg text-text-primary placeholder:text-text-muted focus:border-primary outline-none"

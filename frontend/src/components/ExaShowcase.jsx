@@ -185,6 +185,14 @@ export default function ExaShowcase({ token, handleLogout }) {
 
     return (
         <div className="flex flex-col h-screen bg-background font-sans overflow-hidden pt-20">
+            {/* OVERLAY BACKDROP */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed top-20 left-0 right-0 bottom-0 bg-black/20 backdrop-blur-sm z-[35] transition-opacity duration-500"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
             <div className="flex flex-1 overflow-hidden relative">
                 <Sidebar
                     isOpen={isSidebarOpen}
@@ -195,12 +203,6 @@ export default function ExaShowcase({ token, handleLogout }) {
                     deleteChat={deleteChat}
                     createNewChat={createNewChat}
                 />
-
-                {isSidebarOpen && (
-                    <div
-                        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 transition-opacity duration-500"
-                    />
-                )}
 
                 <main
                     className={`flex-1 overflow-y-auto bg-background relative transition-all duration-500`}

@@ -1,4 +1,12 @@
 from pydantic import BaseModel
+from enum import Enum
+
+class ContextNeed(str, Enum):
+    """Determines whether and how much context is needed for a query."""
+    HIGH = "high"        # Full library + RAG search needed
+    MEDIUM = "medium"    # Library only, no RAG
+    MINIMAL = "minimal"  # Minimal context
+    NONE = "none"        # Purely conversational, no context
 
 class ChatSession(BaseModel):
     title: str
@@ -14,3 +22,4 @@ class ChatResultsUpdate(BaseModel):
 class ChatQuery(BaseModel):
     question: str
     session_id: str | None = None
+    chat_type: str = "thesis"  # "thesis" or "other"

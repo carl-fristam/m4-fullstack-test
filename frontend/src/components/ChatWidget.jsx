@@ -9,7 +9,7 @@ export default function ChatWidget({
 }) {
     const [messages, setMessages] = useState(() => {
         const saved = localStorage.getItem('kb_chat_messages');
-        return saved ? JSON.parse(saved) : [{ role: 'ai', text: 'Ask me anything about your saved sources.' }];
+        return saved ? JSON.parse(saved) : [];
     });
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -18,6 +18,9 @@ export default function ChatWidget({
     });
     const scrollRef = useRef(null);
     const textareaRef = useRef(null);
+    const [showTypeModal, setShowTypeModal] = useState(false);
+    const [chatType, setChatType] = useState('thesis'); // 'thesis' or 'other'
+    const [isFocused, setIsFocused] = useState(false);
 
     useEffect(() => {
         if (activeChat) {
@@ -28,14 +31,34 @@ export default function ChatWidget({
                 text: m.text || m.content || ''
             }));
             setMessages(normalizedMessages);
+
+            // Update chat type based on the active chat's type
+            // Map backend types to frontend chatType values
+            // Default to 'thesis' for older chats without a type field
+            if (activeChat.type === 'research') {
+                setChatType('other');
+            } else {
+                // Default to 'thesis' for 'knowledge_base' or missing type
+                setChatType('thesis');
+            }
+
+            // Clear localStorage when using activeChat to avoid conflicts
+            localStorage.removeItem('kb_chat_messages');
+            localStorage.removeItem('kb_chat_session_id');
+            localStorage.removeItem('kb_chat_type');
         } else {
             const savedMsgs = localStorage.getItem('kb_chat_messages');
-            setMessages(savedMsgs ? JSON.parse(savedMsgs) : [{ role: 'ai', text: 'Ask me anything about your saved sources.' }]);
+            setMessages(savedMsgs ? JSON.parse(savedMsgs) : []);
             const savedSession = localStorage.getItem('kb_chat_session_id');
             setSessionId(savedSession);
+            const savedChatType = localStorage.getItem('kb_chat_type');
+            if (savedChatType) {
+                setChatType(savedChatType);
+            }
         }
     }, [activeChat]);
 
+    // Save to localStorage ONLY when NOT using activeChat
     useEffect(() => {
         if (!activeChat) {
             localStorage.setItem('kb_chat_messages', JSON.stringify(messages));
@@ -47,6 +70,12 @@ export default function ChatWidget({
             localStorage.setItem('kb_chat_session_id', sessionId);
         }
     }, [sessionId, activeChat]);
+
+    useEffect(() => {
+        if (!activeChat) {
+            localStorage.setItem('kb_chat_type', chatType);
+        }
+    }, [chatType, activeChat]);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -102,7 +131,9 @@ export default function ChatWidget({
         try {
             if (!sessionId) {
                 try {
-                    const sessionData = await chatService.createChat(currentInput.substring(0, 50), 'knowledge_base');
+                    // Map frontend chatType to backend session type
+                    const sessionType = chatType === 'thesis' ? 'knowledge_base' : 'research';
+                    const sessionData = await chatService.createChat(currentInput.substring(0, 50), sessionType);
                     currentSessionId = sessionData.id;
                     setSessionId(currentSessionId);
                 } catch (err) {
@@ -113,7 +144,7 @@ export default function ChatWidget({
             const aiMessageId = Date.now();
             setMessages(prev => [...prev, { role: 'ai', text: '', id: aiMessageId, sources: [], showSources: false }]);
 
-            const data = await chatService.sendQuery(currentInput, currentSessionId);
+            const data = await chatService.sendQuery(currentInput, currentSessionId, chatType);
 
             setMessages(prev => prev.map(msg =>
                 msg.id === aiMessageId
@@ -145,19 +176,36 @@ export default function ChatWidget({
     };
 
     const handleNewChat = () => {
+        setShowTypeModal(true); // Show the modal instead of creating chat immediately
+    };
+
+    const confirmNewChat = (type) => {
+        setChatType(type); // Store the selected type
+        setShowTypeModal(false); // Hide the modal
+
         if (onNewChat) {
-            onNewChat();
+            onNewChat(); // This sets activeChat to null
         }
-        const initialMessage = [{ role: 'ai', text: 'Ask me anything about your saved sources.' }];
+        const initialMessage = [];
         setMessages(initialMessage);
         setInput('');
         setSessionId(null);
-        localStorage.removeItem('kb_chat_messages');
-        localStorage.removeItem('kb_chat_session_id');
+        // Only clear localStorage when creating truly new chat (not switching to existing)
+        if (!activeChat) {
+            localStorage.removeItem('kb_chat_messages');
+            localStorage.removeItem('kb_chat_session_id');
+            localStorage.setItem('kb_chat_type', type);
+        }
     };
 
-    const copyToClipboard = (text) => {
-        navigator.clipboard.writeText(text);
+    const copyToClipboard = async (text) => {
+        try {
+            // Copy as plain text (fallback)
+            await navigator.clipboard.writeText(text);
+            console.log('Copied to clipboard');
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
     };
 
     return (
@@ -195,7 +243,7 @@ export default function ChatWidget({
                 )}
 
                 {/* Header */}
-                <div className="p-6 border-b border-border flex justify-between items-center">
+                <div className="p-6 border-border flex justify-between items-center">
                     <div>
                         <h3 className="text-base font-semibold text-text-primary">
                             {activeChat?.title || "Research Assistant"}
@@ -291,34 +339,93 @@ export default function ChatWidget({
                     <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-surface to-transparent z-10 pointer-events-none" />
                 </div>
 
-                {/* Input area */}
-                <div className="p-4 border-t border-border">
-                    <div className="relative flex items-end gap-2">
-                        <textarea
-                            ref={textareaRef}
-                            autoFocus
-                            rows="1"
-                            className="flex-1 px-4 py-3 bg-surface-light border border-border rounded-xl text-sm text-text-primary placeholder:text-text-muted resize-none focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all"
-                            style={{ minHeight: '48px', maxHeight: '200px' }}
-                            placeholder="Ask about your research..."
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSend();
-                                }
-                            }}
-                        />
-                        <button
-                            onClick={handleSend}
-                            disabled={!input.trim() || loading}
-                            className="w-12 h-12 flex items-center justify-center bg-primary hover:bg-primary-dark text-background rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:shadow-glow-primary"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                            </svg>
-                        </button>
+                {/* Floating Input area */}
+                <div className="relative p-4">
+                    {/* Shadow gradient - creates upward shadow effect */}
+                    <div className="absolute bottom-full left-0 right-0 h-12 bg-gradient-to-t from-surface/95 via-surface/50 to-transparent pointer-events-none" />
+
+                    {/* Input container with shadow and conditional primary border */}
+                    <div className={`relative bg-surface rounded-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.3)] border-2 overflow-hidden transition-colors ${isFocused ? 'border-primary' : 'border-border'
+                        }`}>
+                        {/* Top section - Textarea only */}
+                        <div className="bg-surface-light p-4">
+                            <textarea
+                                ref={textareaRef}
+                                autoFocus
+                                rows="1"
+                                className="w-full px-1 py-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted resize-none outline-none focus:outline-none focus:ring-0 border-0"
+                                style={{ minHeight: '48px', maxHeight: '200px' }}
+                                placeholder="Ask about your research..."
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onFocus={() => setIsFocused(true)}
+                                onBlur={() => setIsFocused(false)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSend();
+                                    }
+                                }}
+                            />
+                        </div>
+
+                        {/* Bottom section - Chat mode indicator + Send button */}
+                        <div className="border-t border-border bg-surface px-4 py-2.5 flex items-center justify-between">
+                            {/* Chat mode indicator */}
+                            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${chatType === 'thesis'
+                                ? 'bg-primary/10 text-primary border border-primary/20'
+                                : 'bg-surface-light text-text-muted border border-border'
+                                }`}>
+                                <div className={`w-1.5 h-1.5 rounded-full ${chatType === 'thesis' ? 'bg-primary' : 'bg-text-muted'}`} />
+                                {chatType === 'thesis' ? 'AML Thesis' : 'General Mode'}
+                            </div>
+
+                            {/* Send button */}
+                            <button
+                                onClick={handleSend}
+                                disabled={!input.trim() || loading}
+                                className="w-9 h-9 flex items-center justify-center bg-primary hover:bg-primary-dark text-background rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Chat Type Selection Modal */}
+                        {showTypeModal && (
+                            <div
+                                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center"
+                                onClick={() => setShowTypeModal(false)}
+                            >
+                                <div
+                                    className="bg-surface border border-border rounded-2xl p-6 max-w-md w-full mx-4 shadow-elevated"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <h3 className="text-lg font-semibold text-text-primary mb-4">
+                                        Choose Chat Type
+                                    </h3>
+                                    <div className="space-y-3">
+                                        <button
+                                            onClick={() => confirmNewChat('thesis')}
+                                            className="w-full p-4 bg-primary/10 hover:bg-primary text-primary hover:text-background border border-primary/30 rounded-xl transition-all text-left"
+                                        >
+                                            <div className="font-semibold">For AML Thesis</div>
+                                            <div className="text-sm opacity-80 mt-1">Research assistant with access to your saved papers</div>
+                                        </button>
+                                        <button
+                                            onClick={() => confirmNewChat('other')}
+                                            className="w-full p-4 bg-surface-light hover:bg-surface-hover border border-border hover:border-border-light rounded-xl transition-all text-left text-text-primary"
+                                        >
+                                            <div className="font-semibold">Other Project</div>
+                                            <div className="text-sm text-text-muted mt-1">General purpose assistant</div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+
                     </div>
                 </div>
             </div>

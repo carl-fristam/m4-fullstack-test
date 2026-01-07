@@ -32,7 +32,7 @@ export default function Dashboard({ token, handleLogout, username }) {
     const loadChats = useCallback(async () => {
         if (!token) return;
         try {
-            const data = await chatService.getChats("knowledge_base");
+            const data = await chatService.getChats(); // Load all chats, not just knowledge_base
             setChats(data);
         } catch (err) {
             console.error("Failed to load chats", err);
