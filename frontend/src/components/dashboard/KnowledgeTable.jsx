@@ -37,7 +37,7 @@ export default function KnowledgeTable({
     });
 
     return (
-        <div className="w-[60%] h-full flex flex-col pt-6 pb-6 pr-6">
+        <div className="flex-1 min-w-0 h-full flex flex-col pt-6 pb-6 pr-6">
             {/* UNDO BUTTON */}
             {undoState && (
                 <button

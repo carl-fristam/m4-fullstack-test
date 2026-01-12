@@ -185,7 +185,7 @@ export default function ChatWidget({
 
             {/* Main chat panel */}
             <div
-                className={`${isEmbedded ? 'relative h-full rounded-2xl bg-surface border border-border' : 'fixed top-24 left-0 bottom-6 rounded-r-2xl shadow-elevated z-[80] bg-surface border-r border-y border-border'} flex flex-col ${isResizing ? '' : 'transition-all duration-500'} ${isOpen || isEmbedded ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 pointer-events-none'}`}
+                className={`${isEmbedded ? 'relative flex-1 min-h-0 rounded-2xl bg-surface border border-border' : 'fixed top-24 left-0 bottom-6 rounded-r-2xl shadow-elevated z-[80] bg-surface border-r border-y border-border'} flex flex-col ${isResizing ? '' : 'transition-all duration-500'} ${isOpen || isEmbedded ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 pointer-events-none'}`}
                 style={{ width: isEmbedded ? '100%' : `${width}px` }}
             >
                 {/* Resize handle */}

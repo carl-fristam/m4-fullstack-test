@@ -1,4 +1,5 @@
 import ChatWidget from "../ChatWidget";
+import ViewToggle from "./ViewToggle";
 
 export default function DashboardSidebar({
     isHistoryOpen,
@@ -14,7 +15,9 @@ export default function DashboardSidebar({
     setChatWidth,
     isResizing,
     setIsResizing,
-    loadConversations
+    loadConversations,
+    viewMode,
+    setViewMode
 }) {
     const handleNewConversation = () => {
         setActiveConversation(null);
@@ -22,7 +25,12 @@ export default function DashboardSidebar({
     };
 
     return (
-        <div className="w-[40%] h-full flex flex-col pt-6 pb-6 pl-6 relative">
+        <div 
+            className="h-full flex flex-col pt-6 pb-6 pl-6 relative group/sidebar"
+            style={{ width: chatWidth, minWidth: 450, maxWidth: 900, flexShrink: 0 }}
+        >
+            <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
+
             {/* Overlay backdrop */}
             {isHistoryOpen && (
                 <div
