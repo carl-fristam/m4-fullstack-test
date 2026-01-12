@@ -1,27 +1,53 @@
 import client from './client';
 
-export const getChats = async (type = null) => {
-    const params = type ? { type } : {};
+/**
+ * Get all sessions, optionally filtered by category.
+ * @param {string} category - 'conversation' or 'search'
+ */
+export const getSessions = async (category = null) => {
+    const params = category ? { category } : {};
     const response = await client.get('/chats/', { params });
     return response.data;
 };
 
-export const createChat = async (title, type = 'knowledge_base', contextType = 'thesis') => {
-    const response = await client.post('/chats/', { title, type, context_type: contextType });
+/**
+ * Create a new chat session.
+ * @param {string} title - Session title
+ * @param {string} category - 'conversation' or 'search'
+ * @param {string} mode - 'thesis' or 'general'
+ */
+export const createSession = async (title, category = 'conversation', mode = 'thesis') => {
+    const response = await client.post('/chats/', { title, category, mode });
     return response.data;
 };
 
-export const deleteChat = async (id) => {
-    const response = await client.delete(`/chats/${id}`);
+/**
+ * Delete a chat session.
+ */
+export const deleteSession = async (sessionId) => {
+    const response = await client.delete(`/chats/${sessionId}`);
     return response.data;
 };
 
-export const sendQuery = async (query, sessionId = null, chatType = 'thesis') => {
-    const response = await client.post('/chats/query', { question: query, session_id: sessionId, chat_type: chatType });
+/**
+ * Send a query to the AI assistant.
+ * @param {string} question - The user's question
+ * @param {string} sessionId - Session ID to save conversation to
+ * @param {string} mode - 'thesis' or 'general' (for prompt selection)
+ */
+export const sendQuery = async (question, sessionId = null, mode = 'thesis') => {
+    const response = await client.post('/chats/query', {
+        question,
+        session_id: sessionId,
+        mode
+    });
     return response.data;
 };
 
-export const updateChatResults = async (id, results) => {
-    const response = await client.put(`/chats/${id}/results`, { results });
+/**
+ * Update search results for a session (used by EXA search).
+ */
+export const updateSessionResults = async (sessionId, results) => {
+    const response = await client.put(`/chats/${sessionId}/results`, { results });
     return response.data;
 };

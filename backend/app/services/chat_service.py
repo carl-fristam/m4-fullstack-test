@@ -3,46 +3,49 @@ from bson import ObjectId
 from anthropic import AsyncAnthropic
 from app.core.config import settings
 from app.core.database import db
-from app.models.chat import ChatQuery
+from app.models.chat import ChatQuery, AssistantMode
 from app.services.vector_service import get_vector_service
 from app.services.prompt_builder import prompt_builder
 from app.services.context_builder import context_builder
 from app.services.query_classifier import query_classifier
 
+
 class ChatService:
     def __init__(self):
         self.client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
-        self.chat_collection = db.get_collection("chat_sessions")
-        # Initialize vector service
-        self.vector_service = get_vector_service() 
+        self.collection = db.get_collection("chat_sessions")
+        self.vector_service = get_vector_service()
 
     async def process_query(self, query: ChatQuery, user_id: str):
-        # 1. Load History
+        """Process a user query and return AI response."""
+        # 1. Load conversation history and session mode
         conversation_history = []
-        session_context_type = "thesis"  # Default
+        session_mode = AssistantMode.THESIS
+
         if query.session_id:
-            session = await self.chat_collection.find_one({
+            session = await self.collection.find_one({
                 "_id": ObjectId(query.session_id),
                 "user_id": user_id
             })
-            if session and session.get("messages"):
-                conversation_history = session["messages"][-10:]
             if session:
-                session_context_type = session.get("context_type", "thesis")
+                if session.get("messages"):
+                    conversation_history = session["messages"][-10:]
+                session_mode = session.get("mode", AssistantMode.THESIS)
 
-        # 2. Classify Query Intent
+        # 2. Classify query intent
         context_need = await query_classifier.classify(query.question, conversation_history)
 
-        # 3. Conditionally Build Context
+        # 3. Build context based on intent
         library_context, rag_context, source_titles = await context_builder.build(
             query.question,
             user_id,
             context_need=context_need
         )
 
-        # 4. Build System Prompt (use session's context_type)
-        system_message = prompt_builder.build_system_message(library_context, rag_context, session_context_type)
-        # 5. Messages
+        # 4. Build system prompt using session's mode
+        system_message = prompt_builder.build_system_message(library_context, rag_context, session_mode)
+
+        # 5. Format messages for API
         messages = []
         for msg in conversation_history:
             role = "assistant" if msg["role"] == "ai" else msg["role"]
@@ -57,12 +60,12 @@ class ChatService:
             messages=messages,
             extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"}
         )
-        
+
         full_response = response.content[0].text
 
-        # 7. Save History
+        # 7. Save to history
         if query.session_id:
-             await self.chat_collection.update_one(
+            await self.collection.update_one(
                 {"_id": ObjectId(query.session_id)},
                 {
                     "$push": {
@@ -79,43 +82,48 @@ class ChatService:
 
         return {"response": full_response, "sources_used": source_titles}
 
-    async def get_chats(self, user_id: str, chat_type: str = None):
+    async def get_sessions(self, user_id: str, category: str = None):
+        """Get all sessions for a user, optionally filtered by category."""
         query = {"user_id": user_id}
-        if chat_type:
-            query["type"] = chat_type
-        
-        chats = []
-        async for chat in self.chat_collection.find(query).sort("created_at", -1):
-            chat["id"] = str(chat["_id"])
-            del chat["_id"]
-            chats.append(chat)
-        return chats
+        if category:
+            query["category"] = category
 
-    async def create_chat(self, chat_data, user_id: str):
-        chat_dict = chat_data.model_dump()
-        chat_dict["user_id"] = user_id
-        chat_dict["created_at"] = datetime.utcnow().isoformat()
-        chat_dict["messages"] = []
-        new_chat = await self.chat_collection.insert_one(chat_dict)
-        return {"id": str(new_chat.inserted_id), "message": "Chat created"}
+        sessions = []
+        async for session in self.collection.find(query).sort("created_at", -1):
+            session["id"] = str(session["_id"])
+            del session["_id"]
+            sessions.append(session)
+        return sessions
 
-    async def delete_chat(self, id: str, user_id: str):
+    async def create_session(self, session_data, user_id: str):
+        """Create a new chat session."""
+        session_dict = session_data.model_dump()
+        session_dict["user_id"] = user_id
+        session_dict["created_at"] = datetime.utcnow().isoformat()
+        session_dict["messages"] = []
+        new_session = await self.collection.insert_one(session_dict)
+        return {"id": str(new_session.inserted_id)}
+
+    async def delete_session(self, session_id: str, user_id: str):
+        """Delete a chat session."""
         try:
-             obj_id = ObjectId(id)
-        except:
-             return {"error": "Invalid ID"}
-        await self.chat_collection.delete_one({"_id": obj_id, "user_id": user_id})
-        return {"message": "Chat deleted"}
-
-    async def update_chat_results(self, id: str, user_id: str, results: list):
-        try:
-            obj_id = ObjectId(id)
+            obj_id = ObjectId(session_id)
         except:
             return {"error": "Invalid ID"}
-        await self.chat_collection.update_one(
+        await self.collection.delete_one({"_id": obj_id, "user_id": user_id})
+        return {"message": "Session deleted"}
+
+    async def update_session_results(self, session_id: str, user_id: str, results: list):
+        """Update search results for a session (used by EXA search)."""
+        try:
+            obj_id = ObjectId(session_id)
+        except:
+            return {"error": "Invalid ID"}
+        await self.collection.update_one(
             {"_id": obj_id, "user_id": user_id},
             {"$set": {"results": results}}
         )
         return {"message": "Results updated"}
+
 
 chat_service = ChatService()

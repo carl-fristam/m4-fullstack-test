@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import * as knowledgeService from "../api/knowledge";
-import * as chatService from "../api/chat";
+import * as chatApi from "../api/chat";
 import DashboardSidebar from "./dashboard/DashboardSidebar";
 import KnowledgeTable from "./dashboard/KnowledgeTable";
 import NotePopup from "./dashboard/NotePopup";
@@ -12,79 +12,94 @@ export default function Dashboard({ token, handleLogout, username }) {
     const [chatWidth, setChatWidth] = useState(450);
     const [isResizing, setIsResizing] = useState(false);
 
-    // Tag Edit State
+    // Tag edit state
     const [editingId, setEditingId] = useState(null);
     const [tagInput, setTagInput] = useState("");
 
-    // Undo / Delete Animation State
+    // Undo / delete animation state
     const [deletingId, setDeletingId] = useState(null);
-    const [undoState, setUndoState] = useState(null); // { item, index, timerId, y }
+    const [undoState, setUndoState] = useState(null);
 
-    // Notes State
-    const [activeNote, setActiveNote] = useState(null); // { id, x, y }
+    // Notes state
+    const [activeNote, setActiveNote] = useState(null);
     const [noteInput, setNoteInput] = useState("");
 
-    // History Sidebar State
+    // Conversation history state
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-    const [chats, setChats] = useState([]);
-    const [activeChat, setActiveChat] = useState(null);
+    const [conversations, setConversations] = useState([]);
+    const [activeConversation, setActiveConversation] = useState(null);
 
-    // Load chats from backend, optionally auto-selecting one by ID
-    const loadChats = useCallback(async (autoSelectId = null) => {
+    // Load conversations from backend
+    const loadConversations = useCallback(async (autoSelectId = null) => {
         if (!token) return;
         try {
-            const data = await chatService.getChats("knowledge_base");
-            setChats(data);
+            const data = await chatApi.getSessions("conversation");
+            setConversations(data);
             if (autoSelectId) {
                 const found = data.find(c => c.id === autoSelectId);
-                if (found) setActiveChat(found);
+                if (found) setActiveConversation(found);
             }
         } catch (err) {
-            console.error("Failed to load chats", err);
+            console.error("Failed to load conversations", err);
         }
     }, [token]);
 
-    // Delete a chat and clear active if it's the one being deleted
-    const deleteChat = async (e, id) => {
+    // Delete a conversation
+    const deleteConversation = async (e, id) => {
         e.stopPropagation();
-        const wasActive = activeChat?.id === id;
-        await chatService.deleteChat(id);
+        const wasActive = activeConversation?.id === id;
+        await chatApi.deleteSession(id);
         if (wasActive) {
-            setActiveChat(null);
+            setActiveConversation(null);
         }
-        loadChats();
+        loadConversations();
     };
 
-    // On mount: restore previously active chat from sessionStorage
+    // On mount: restore previously active conversation from sessionStorage
     useEffect(() => {
         if (token) {
-            const savedChatId = sessionStorage.getItem("kb_active_chat_id");
-            loadChats(savedChatId);
+            const savedId = sessionStorage.getItem("kb_active_conversation_id");
+            loadConversations(savedId);
         }
-    }, [token, loadChats]);
+    }, [token, loadConversations]);
 
-    // Persist active chat ID to sessionStorage
+    // Persist active conversation ID to sessionStorage
     useEffect(() => {
-        if (activeChat) {
-            sessionStorage.setItem("kb_active_chat_id", activeChat.id);
+        if (activeConversation) {
+            sessionStorage.setItem("kb_active_conversation_id", activeConversation.id);
         } else {
-            sessionStorage.removeItem("kb_active_chat_id");
+            sessionStorage.removeItem("kb_active_conversation_id");
         }
-    }, [activeChat]);
+    }, [activeConversation]);
+
+    // --- Knowledge sources management ---
+
+    const loadSources = useCallback(async () => {
+        if (!token) return;
+        try {
+            const data = await knowledgeService.getSavedResults();
+            const sortedData = data.sort((a, b) => new Date(b.saved_at || 0) - new Date(a.saved_at || 0));
+            setSources(sortedData);
+        } catch (err) {
+            console.error("Failed to load sources:", err);
+            if (err.response?.status === 401) {
+                handleLogout();
+            }
+        }
+    }, [token, handleLogout]);
+
+    useEffect(() => {
+        loadSources();
+    }, [loadSources]);
 
     const openNote = (s, e) => {
         e.stopPropagation();
         const rect = e.target.getBoundingClientRect();
         const spaceRight = window.innerWidth - rect.right;
         const overlayWidth = 280;
-
-        let xPos;
-        if (spaceRight < overlayWidth) {
-            xPos = rect.left - overlayWidth + 20;
-        } else {
-            xPos = rect.right + 10;
-        }
-
+        const xPos = spaceRight < overlayWidth
+            ? rect.left - overlayWidth + 20
+            : rect.right + 10;
         setActiveNote({ id: s.id, x: xPos, y: rect.top - 20 });
         setNoteInput(s.note || "");
     };
@@ -100,25 +115,7 @@ export default function Dashboard({ token, handleLogout, username }) {
         }
     };
 
-    const loadSources = useCallback(async () => {
-        if (!token) return;
-        try {
-            const data = await knowledgeService.getSavedResults();
-            const sortedData = data.sort((a, b) => new Date(b.saved_at || 0) - new Date(a.saved_at || 0));
-            setSources(sortedData);
-        } catch (err) {
-            console.error("Failed to load sources:", err);
-            if (err.response && err.response.status === 401) {
-                handleLogout();
-            }
-        }
-    }, [token, handleLogout]);
-
-    useEffect(() => {
-        loadSources();
-    }, [loadSources]);
-
-    // Handle clicking outside to close Tag Input
+    // Handle clicking outside to close tag input
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (editingId) {
@@ -128,7 +125,6 @@ export default function Dashboard({ token, handleLogout, username }) {
                 }
             }
         };
-
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [editingId]);
@@ -154,7 +150,7 @@ export default function Dashboard({ token, handleLogout, username }) {
     const removeTag = async (item, tagToRemove) => {
         const newTags = item.tags.filter(t => t !== tagToRemove);
         await updateSource(item.id, { tags: newTags });
-    }
+    };
 
     const updateSource = async (id, update) => {
         try {
@@ -163,7 +159,7 @@ export default function Dashboard({ token, handleLogout, username }) {
         } catch (err) {
             console.error("Update error:", err);
         }
-    }
+    };
 
     const removeSource = (id, e) => {
         const row = e.target.closest('tr');
@@ -226,11 +222,10 @@ export default function Dashboard({ token, handleLogout, username }) {
                 <DashboardSidebar
                     isHistoryOpen={isHistoryOpen}
                     setIsHistoryOpen={setIsHistoryOpen}
-                    chats={chats}
-                    activeChat={activeChat}
-                    setActiveChat={setActiveChat}
-                    deleteChat={deleteChat}
-                    token={token}
+                    conversations={conversations}
+                    activeConversation={activeConversation}
+                    setActiveConversation={setActiveConversation}
+                    deleteConversation={deleteConversation}
                     username={username}
                     isChatOpen={isChatOpen}
                     setIsChatOpen={setIsChatOpen}
@@ -238,7 +233,7 @@ export default function Dashboard({ token, handleLogout, username }) {
                     setChatWidth={setChatWidth}
                     isResizing={isResizing}
                     setIsResizing={setIsResizing}
-                    loadChats={loadChats}
+                    loadConversations={loadConversations}
                 />
 
                 <KnowledgeTable

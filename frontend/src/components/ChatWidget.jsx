@@ -1,42 +1,48 @@
 import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import * as chatService from '../api/chat';
+import * as chatApi from '../api/chat';
 
 export default function ChatWidget({
-    username, isOpen, toggleChat, width, setWidth, isResizing, setIsResizing, isEmbedded = false,
-    activeChat, onNewChat, onChatUpdated, onToggleHistory
+    username,
+    isOpen,
+    toggleChat,
+    width,
+    setWidth,
+    isResizing,
+    setIsResizing,
+    isEmbedded = false,
+    activeConversation,
+    onNewConversation,
+    onConversationUpdated,
+    onToggleHistory
 }) {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
-    const [sessionId, setSessionId] = useState(null);
-    const [chatType, setChatType] = useState('thesis');
-    const [showTypeModal, setShowTypeModal] = useState(false);
+    const [currentSessionId, setCurrentSessionId] = useState(null);
+    const [mode, setMode] = useState('thesis');
+    const [showModeModal, setShowModeModal] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
 
     const scrollRef = useRef(null);
     const textareaRef = useRef(null);
 
-    // Sync state with activeChat prop
+    // Sync state with activeConversation prop
     useEffect(() => {
-        if (activeChat) {
-            // Load from activeChat (clicked from history)
-            setSessionId(activeChat.id);
-            setMessages((activeChat.messages || []).map(m => ({
+        if (activeConversation) {
+            setCurrentSessionId(activeConversation.id);
+            setMessages((activeConversation.messages || []).map(m => ({
                 ...m,
                 role: m.role === 'assistant' ? 'ai' : m.role,
                 text: m.text || m.content || ''
             })));
-            // Restore context_type from the chat
-            setChatType(activeChat.context_type || 'thesis');
+            setMode(activeConversation.mode || 'thesis');
         } else {
-            // New chat mode - clear everything
-            setSessionId(null);
+            setCurrentSessionId(null);
             setMessages([]);
-            // Keep chatType as-is (user selected it via modal)
         }
-    }, [activeChat]);
+    }, [activeConversation]);
 
     // Auto-scroll to bottom
     useEffect(() => {
@@ -89,18 +95,18 @@ export default function ChatWidget({
         setInput('');
         setLoading(true);
 
-        let currentSessionId = sessionId;
+        let sessionId = currentSessionId;
 
         try {
             // Create session if needed
-            if (!currentSessionId) {
-                const sessionData = await chatService.createChat(
+            if (!sessionId) {
+                const sessionData = await chatApi.createSession(
                     currentInput.substring(0, 50),
-                    'knowledge_base',
-                    chatType
+                    'conversation',
+                    mode
                 );
-                currentSessionId = sessionData.id;
-                setSessionId(currentSessionId);
+                sessionId = sessionData.id;
+                setCurrentSessionId(sessionId);
             }
 
             // Add placeholder for AI response
@@ -108,7 +114,7 @@ export default function ChatWidget({
             setMessages(prev => [...prev, { role: 'ai', text: '', id: aiMessageId, sources: [], showSources: false }]);
 
             // Send query
-            const data = await chatService.sendQuery(currentInput, currentSessionId, chatType);
+            const data = await chatApi.sendQuery(currentInput, sessionId, mode);
 
             // Update AI message with response
             setMessages(prev => prev.map(msg =>
@@ -122,9 +128,9 @@ export default function ChatWidget({
                     : msg
             ));
 
-            // Refresh chat list
-            if (onChatUpdated) {
-                onChatUpdated();
+            // Refresh conversation list
+            if (onConversationUpdated) {
+                onConversationUpdated();
             }
 
         } catch (err) {
@@ -141,17 +147,17 @@ export default function ChatWidget({
         }
     };
 
-    const handleNewChat = () => {
-        setShowTypeModal(true);
+    const handleNewConversation = () => {
+        setShowModeModal(true);
     };
 
-    const confirmNewChat = (type) => {
-        setChatType(type);
-        setShowTypeModal(false);
+    const confirmNewConversation = (selectedMode) => {
+        setMode(selectedMode);
+        setShowModeModal(false);
         setMessages([]);
-        setSessionId(null);
+        setCurrentSessionId(null);
         setInput('');
-        if (onNewChat) onNewChat();
+        if (onNewConversation) onNewConversation();
     };
 
     const copyToClipboard = async (text) => {
@@ -200,7 +206,7 @@ export default function ChatWidget({
                 <div className="p-6 border-border flex justify-between items-center">
                     <div>
                         <h3 className="text-base font-semibold text-text-primary">
-                            {activeChat?.title || "Research Assistant"}
+                            {activeConversation?.title || "Research Assistant"}
                         </h3>
                         <div className="flex items-center gap-2 mt-1">
                             <span className="status-dot online" />
@@ -220,7 +226,7 @@ export default function ChatWidget({
                             </button>
                         )}
                         <button
-                            onClick={handleNewChat}
+                            onClick={handleNewConversation}
                             className="px-4 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-background text-xs font-semibold uppercase tracking-wider rounded-xl transition-all"
                         >
                             New Chat
@@ -230,7 +236,6 @@ export default function ChatWidget({
 
                 {/* Messages area */}
                 <div className="relative flex-1 overflow-hidden">
-                    {/* Top fade */}
                     <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-surface to-transparent z-10 pointer-events-none" />
 
                     <div
@@ -243,7 +248,6 @@ export default function ChatWidget({
                                 className={`flex flex-col gap-2 animate-fade-in-up ${m.role === 'user' ? 'items-end' : 'items-start'}`}
                                 style={{ animationDelay: `${i * 50}ms` }}
                             >
-                                {/* Sender label */}
                                 <div className={`flex items-center gap-2 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
                                     <span className="text-xs font-medium text-text-muted">
                                         {m.role === 'user' ? username : 'Claude'}
@@ -261,7 +265,6 @@ export default function ChatWidget({
                                     )}
                                 </div>
 
-                                {/* Message bubble */}
                                 <div className={`max-w-[85%] ${m.role === 'ai' ? 'w-full' : ''}`}>
                                     {m.role === 'ai' ? (
                                         <div className="bg-surface-light border border-border rounded-2xl rounded-tl-sm p-5">
@@ -289,18 +292,14 @@ export default function ChatWidget({
                         ))}
                     </div>
 
-                    {/* Bottom fade */}
                     <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-surface to-transparent z-10 pointer-events-none" />
                 </div>
 
-                {/* Floating Input area */}
+                {/* Input area */}
                 <div className="relative p-4">
-                    {/* Shadow gradient */}
                     <div className="absolute bottom-full left-0 right-0 h-12 bg-gradient-to-t from-surface/95 via-surface/50 to-transparent pointer-events-none" />
 
-                    {/* Input container */}
                     <div className={`relative bg-surface rounded-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.3)] border-2 overflow-hidden transition-colors ${isFocused ? 'border-primary' : 'border-border'}`}>
-                        {/* Textarea */}
                         <div className="bg-surface-light p-4">
                             <textarea
                                 ref={textareaRef}
@@ -322,14 +321,14 @@ export default function ChatWidget({
                             />
                         </div>
 
-                        {/* Bottom section - Chat mode indicator + Send button */}
+                        {/* Mode indicator + Send button */}
                         <div className="border-t border-border bg-surface px-4 py-2.5 flex items-center justify-between">
-                            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${chatType === 'thesis'
+                            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${mode === 'thesis'
                                 ? 'bg-primary/10 text-primary border border-primary/20'
                                 : 'bg-surface-light text-text-muted border border-border'
                                 }`}>
-                                <div className={`w-1.5 h-1.5 rounded-full ${chatType === 'thesis' ? 'bg-primary' : 'bg-text-muted'}`} />
-                                {chatType === 'thesis' ? 'AML Thesis' : 'General Mode'}
+                                <div className={`w-1.5 h-1.5 rounded-full ${mode === 'thesis' ? 'bg-primary' : 'bg-text-muted'}`} />
+                                {mode === 'thesis' ? 'AML Thesis' : 'General Mode'}
                             </div>
 
                             <button
@@ -343,32 +342,32 @@ export default function ChatWidget({
                             </button>
                         </div>
 
-                        {/* Chat Type Selection Modal */}
-                        {showTypeModal && (
+                        {/* Mode Selection Modal */}
+                        {showModeModal && (
                             <div
                                 className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center"
-                                onClick={() => setShowTypeModal(false)}
+                                onClick={() => setShowModeModal(false)}
                             >
                                 <div
                                     className="bg-surface border border-border rounded-2xl p-6 max-w-md w-full mx-4 shadow-elevated"
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     <h3 className="text-lg font-semibold text-text-primary mb-4">
-                                        Choose Chat Type
+                                        Choose Assistant Mode
                                     </h3>
                                     <div className="space-y-3">
                                         <button
-                                            onClick={() => confirmNewChat('thesis')}
+                                            onClick={() => confirmNewConversation('thesis')}
                                             className="w-full p-4 bg-primary/10 hover:bg-primary text-primary hover:text-background border border-primary/30 rounded-xl transition-all text-left"
                                         >
-                                            <div className="font-semibold">For AML Thesis</div>
+                                            <div className="font-semibold">AML Thesis</div>
                                             <div className="text-sm opacity-80 mt-1">Research assistant with access to your saved papers</div>
                                         </button>
                                         <button
-                                            onClick={() => confirmNewChat('other')}
+                                            onClick={() => confirmNewConversation('general')}
                                             className="w-full p-4 bg-surface-light hover:bg-surface-hover border border-border hover:border-border-light rounded-xl transition-all text-left text-text-primary"
                                         >
-                                            <div className="font-semibold">Other Project</div>
+                                            <div className="font-semibold">General</div>
                                             <div className="text-sm text-text-muted mt-1">General purpose assistant</div>
                                         </button>
                                     </div>

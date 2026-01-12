@@ -3,11 +3,10 @@ import ChatWidget from "../ChatWidget";
 export default function DashboardSidebar({
     isHistoryOpen,
     setIsHistoryOpen,
-    chats,
-    activeChat,
-    setActiveChat,
-    deleteChat,
-    token,
+    conversations,
+    activeConversation,
+    setActiveConversation,
+    deleteConversation,
     username,
     isChatOpen,
     setIsChatOpen,
@@ -15,16 +14,16 @@ export default function DashboardSidebar({
     setChatWidth,
     isResizing,
     setIsResizing,
-    loadChats
+    loadConversations
 }) {
-    const createNewChat = () => {
-        setActiveChat(null);
+    const handleNewConversation = () => {
+        setActiveConversation(null);
         setIsHistoryOpen(false);
     };
 
     return (
         <div className="w-[40%] h-full flex flex-col pt-6 pb-6 pl-6 relative">
-            {/* OVERLAY BACKDROP */}
+            {/* Overlay backdrop */}
             {isHistoryOpen && (
                 <div
                     className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 transition-opacity duration-500"
@@ -32,12 +31,11 @@ export default function DashboardSidebar({
                 />
             )}
 
-            {/* HISTORY SIDEBAR */}
+            {/* History sidebar */}
             <aside className={`fixed left-0 top-28 bottom-100 w-72 bg-surface/95 backdrop-blur-xl flex flex-col z-40 transition-transform duration-500 rounded-r-3xl ${isHistoryOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                {/* Header */}
                 <div className="p-4 space-y-3">
                     <button
-                        onClick={createNewChat}
+                        onClick={handleNewConversation}
                         className="w-full py-3.5 bg-primary text-background font-bold text-xs uppercase tracking-wider rounded-xl hover:bg-primary-dark transition-all flex items-center justify-center gap-2 shadow-glow-primary"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,35 +54,34 @@ export default function DashboardSidebar({
                     </button>
                 </div>
 
-                {/* Chat list */}
+                {/* Conversation list */}
                 <div className="flex-1 overflow-y-auto px-3 pb-6 space-y-1 scrollbar-hide">
                     <p className="text-xs font-medium text-text-muted uppercase tracking-wider px-3 mb-2">History</p>
 
-                    {chats.length === 0 && (
+                    {conversations.length === 0 && (
                         <div className="px-3 py-6 text-center">
                             <p className="text-xs text-text-muted">No conversations yet</p>
                         </div>
                     )}
 
-                    {chats.map(chat => (
+                    {conversations.map(conversation => (
                         <div
-                            key={chat.id}
-                            onClick={() => setActiveChat(chat)}
-                            className={`group relative p-4 rounded-xl cursor-pointer transition-all border ${activeChat?.id === chat.id
+                            key={conversation.id}
+                            onClick={() => setActiveConversation(conversation)}
+                            className={`group relative p-4 rounded-xl cursor-pointer transition-all border ${activeConversation?.id === conversation.id
                                 ? "bg-primary/10 border-primary/30"
                                 : "border-transparent hover:bg-surface-light hover:border-border"
                                 }`}
                         >
-                            <div className={`font-medium text-sm truncate pr-6 ${activeChat?.id === chat.id ? "text-primary" : "text-text-primary"
-                                }`}>
-                                {chat.title || "Untitled Chat"}
+                            <div className={`font-medium text-sm truncate pr-6 ${activeConversation?.id === conversation.id ? "text-primary" : "text-text-primary"}`}>
+                                {conversation.title || "Untitled Chat"}
                             </div>
                             <div className="text-xs text-text-muted mt-1">
-                                {new Date(chat.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                {new Date(conversation.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                             </div>
 
                             <button
-                                onClick={(e) => deleteChat(e, chat.id)}
+                                onClick={(e) => deleteConversation(e, conversation.id)}
                                 className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-text-muted hover:text-accent-coral hover:bg-accent-coral/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -96,9 +93,8 @@ export default function DashboardSidebar({
                 </div>
             </aside>
 
-            {/* EMBEDDED CHAT WIDGET */}
+            {/* Embedded ChatWidget */}
             <ChatWidget
-                token={token}
                 username={username}
                 isOpen={isChatOpen}
                 toggleChat={() => setIsChatOpen(!isChatOpen)}
@@ -107,9 +103,9 @@ export default function DashboardSidebar({
                 setIsResizing={setIsResizing}
                 isResizing={isResizing}
                 isEmbedded={true}
-                activeChat={activeChat}
-                onNewChat={() => setActiveChat(null)}
-                onChatUpdated={loadChats}
+                activeConversation={activeConversation}
+                onNewConversation={() => setActiveConversation(null)}
+                onConversationUpdated={loadConversations}
                 onToggleHistory={() => setIsHistoryOpen(!isHistoryOpen)}
             />
         </div>

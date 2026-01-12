@@ -5,19 +5,19 @@ export default function SearchInput({
     setQuery,
     onSearch,
     loading,
-    currentChatId
+    currentSearchId
 }) {
     return (
         <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/50">
             <div className="max-w-4xl mx-auto px-6 py-8">
                 <div className="text-center mb-6">
-                    {currentChatId && query ? (
+                    {currentSearchId && query ? (
                         <p className="text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Active Session</p>
                     ) : null}
                     <h1 className="font-display text-display-lg text-text-primary">
-                        {currentChatId && query ? query : "Research Papers"}
+                        {currentSearchId && query ? query : "Research Papers"}
                     </h1>
-                    {!currentChatId && (
+                    {!currentSearchId && (
                         <p className="text-sm text-text-muted mt-2">Search academic papers with AI-powered discovery</p>
                     )}
                 </div>

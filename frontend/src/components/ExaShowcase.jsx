@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import * as chatService from "../api/chat";
+import * as chatApi from "../api/chat";
 import * as knowledgeService from "../api/knowledge";
 import Sidebar from "./exa/Sidebar";
 import SearchInput from "./exa/SearchInput";
@@ -12,8 +12,8 @@ export default function ExaShowcase({ token, handleLogout }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const [chats, setChats] = useState([]);
-    const [currentChatId, setCurrentChatId] = useState(null);
+    const [searches, setSearches] = useState([]);
+    const [currentSearchId, setCurrentSearchId] = useState(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const [savedItems, setSavedItems] = useState([]);
@@ -25,37 +25,37 @@ export default function ExaShowcase({ token, handleLogout }) {
     const [previewExpanded, setPreviewExpanded] = useState(false);
     const [showAllResults, setShowAllResults] = useState(false);
 
-    const selectChat = useCallback((chat) => {
-        setCurrentChatId(chat.id);
-        sessionStorage.setItem("active_chat_id", chat.id);
-        setQuery(chat.title);
-        // Chats store results in 'results' list, Exa expects { results: [...] }
-        if (chat.results && chat.results.length > 0) {
-            setResults({ results: chat.results });
+    const selectSearch = useCallback((search) => {
+        setCurrentSearchId(search.id);
+        sessionStorage.setItem("active_search_id", search.id);
+        setQuery(search.title);
+        // Searches store results in 'results' list, Exa expects { results: [...] }
+        if (search.results && search.results.length > 0) {
+            setResults({ results: search.results });
         } else {
             setResults(null);
         }
     }, []);
 
-    const createNewChat = () => {
-        setCurrentChatId(null);
+    const createNewSearch = () => {
+        setCurrentSearchId(null);
         setQuery("");
         setResults(null);
-        sessionStorage.removeItem("active_chat_id");
+        sessionStorage.removeItem("active_search_id");
     };
 
-    const loadChats = useCallback(async (autoSelectId = null) => {
+    const loadSearches = useCallback(async (autoSelectId = null) => {
         try {
-            const data = await chatService.getChats("research");
-            setChats(data);
+            const data = await chatApi.getSessions("search");
+            setSearches(data);
             if (autoSelectId) {
-                const found = data.find(c => c.id === autoSelectId);
-                if (found) selectChat(found);
+                const found = data.find(s => s.id === autoSelectId);
+                if (found) selectSearch(found);
             }
         } catch (err) {
-            console.error("Failed to load chats", err);
+            console.error("Failed to load searches", err);
         }
-    }, [selectChat]);
+    }, [selectSearch]);
 
     const loadSavedItems = useCallback(async () => {
         try {
@@ -66,20 +66,20 @@ export default function ExaShowcase({ token, handleLogout }) {
         }
     }, []);
 
-    const deleteChat = async (e, id) => {
+    const deleteSearch = async (e, id) => {
         e.stopPropagation();
-        await chatService.deleteChat(id);
-        loadChats();
-        if (currentChatId === id) createNewChat();
+        await chatApi.deleteSession(id);
+        loadSearches();
+        if (currentSearchId === id) createNewSearch();
     };
 
     useEffect(() => {
         if (token) {
-            const savedChatId = sessionStorage.getItem("active_chat_id");
-            loadChats(savedChatId);
+            const savedSearchId = sessionStorage.getItem("active_search_id");
+            loadSearches(savedSearchId);
             loadSavedItems();
         }
-    }, [token, loadChats, loadSavedItems]);
+    }, [token, loadSearches, loadSavedItems]);
 
     const handleSearch = async (e) => {
         if (e) e.preventDefault();
@@ -91,21 +91,21 @@ export default function ExaShowcase({ token, handleLogout }) {
         setShowAllResults(false);
 
         try {
-            // 1. Create Chat if needed
-            let activeChatId = currentChatId;
-            if (!activeChatId) {
-                const chatData = await chatService.createChat(query, "research");
-                activeChatId = chatData.id;
-                setCurrentChatId(activeChatId);
+            // 1. Create search session if needed
+            let activeSearchId = currentSearchId;
+            if (!activeSearchId) {
+                const sessionData = await chatApi.createSession(query, "search");
+                activeSearchId = sessionData.id;
+                setCurrentSearchId(activeSearchId);
             }
 
             // 2. Perform Search
             const data = await knowledgeService.searchExa(query);
             setResults(data);
 
-            // 3. Save results to chat
-            if (activeChatId && data.results) {
-                await chatService.updateChatResults(activeChatId, data.results);
+            // 3. Save results to search session
+            if (activeSearchId && data.results) {
+                await chatApi.updateSessionResults(activeSearchId, data.results);
             }
 
         } catch (err) {
@@ -189,11 +189,11 @@ export default function ExaShowcase({ token, handleLogout }) {
                 <Sidebar
                     isOpen={isSidebarOpen}
                     setIsOpen={setIsSidebarOpen}
-                    chats={chats}
-                    currentChatId={currentChatId}
-                    selectChat={selectChat}
-                    deleteChat={deleteChat}
-                    createNewChat={createNewChat}
+                    searches={searches}
+                    currentSearchId={currentSearchId}
+                    selectSearch={selectSearch}
+                    deleteSearch={deleteSearch}
+                    createNewSearch={createNewSearch}
                 />
 
                 <main
@@ -205,7 +205,7 @@ export default function ExaShowcase({ token, handleLogout }) {
                         setQuery={setQuery}
                         onSearch={handleSearch}
                         loading={loading}
-                        currentChatId={currentChatId}
+                        currentSearchId={currentSearchId}
                     />
 
                     <div className="max-w-7xl mx-auto px-6 py-12">

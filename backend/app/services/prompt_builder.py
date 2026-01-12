@@ -17,14 +17,14 @@ You are a helpful AI assistant for general tasks and questions.
 Provide clear, accurate, and helpful responses. Format with Markdown when appropriate.
 """
 
-    def build_system_message(self, library_context: str = "", rag_context: str = "", chat_type: str = "thesis") -> list:
+    def build_system_message(self, library_context: str = "", rag_context: str = "", mode: str = "thesis") -> list:
         """
         Constructs the full system message payload for the LLM.
         Handles empty context gracefully for conversational queries.
-        Supports different chat types (thesis or general).
+        Supports different modes (thesis or general).
         """
-        # Choose prompt based on chat type
-        if chat_type == "thesis":
+        # Choose prompt based on assistant mode
+        if mode == "thesis":
             system_text = self.BASE_INSTRUCTION.format(thesis_context=self.THESIS_CONTEXT.strip())
         else:
             system_text = self.GENERAL_INSTRUCTION

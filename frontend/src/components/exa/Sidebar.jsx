@@ -3,11 +3,11 @@ import React from "react";
 export default function Sidebar({
     isOpen,
     setIsOpen,
-    chats,
-    currentChatId,
-    selectChat,
-    deleteChat,
-    createNewChat
+    searches,
+    currentSearchId,
+    selectSearch,
+    deleteSearch,
+    createNewSearch
 }) {
     return (
         <>
@@ -16,13 +16,13 @@ export default function Sidebar({
                 {/* Header */}
                 <div className="p-4 space-y-3">
                     <button
-                        onClick={createNewChat}
+                        onClick={createNewSearch}
                         className="w-full py-3.5 bg-primary text-background font-bold text-xs uppercase tracking-wider rounded-xl hover:bg-primary-dark transition-all flex items-center justify-center gap-2 shadow-glow-primary"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
                         </svg>
-                        New Research
+                        New Search
                     </button>
                     <button
                         onClick={() => setIsOpen(false)}
@@ -35,35 +35,35 @@ export default function Sidebar({
                     </button>
                 </div>
 
-                {/* Chat list */}
+                {/* Search list */}
                 <div className="flex-1 overflow-y-auto px-3 pb-6 space-y-1 scrollbar-hide">
                     <p className="text-xs font-medium text-text-muted uppercase tracking-wider px-3 mb-2">History</p>
 
-                    {chats.length === 0 && (
+                    {searches.length === 0 && (
                         <div className="px-3 py-6 text-center">
                             <p className="text-xs text-text-muted">No searches yet</p>
                         </div>
                     )}
 
-                    {chats.map(chat => (
+                    {searches.map(search => (
                         <div
-                            key={chat.id}
-                            onClick={() => selectChat(chat)}
-                            className={`group relative p-4 rounded-xl cursor-pointer transition-all border ${currentChatId === chat.id
+                            key={search.id}
+                            onClick={() => selectSearch(search)}
+                            className={`group relative p-4 rounded-xl cursor-pointer transition-all border ${currentSearchId === search.id
                                 ? "bg-primary/10 border-primary/30"
                                 : "border-transparent hover:bg-surface-light hover:border-border"
                                 }`}
                         >
-                            <div className={`font-medium text-sm truncate pr-6 ${currentChatId === chat.id ? "text-primary" : "text-text-primary"
+                            <div className={`font-medium text-sm truncate pr-6 ${currentSearchId === search.id ? "text-primary" : "text-text-primary"
                                 }`}>
-                                {chat.title || "Untitled Search"}
+                                {search.title || "Untitled Search"}
                             </div>
                             <div className="text-xs text-text-muted mt-1">
-                                {new Date(chat.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                {new Date(search.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                             </div>
 
                             <button
-                                onClick={(e) => deleteChat(e, chat.id)}
+                                onClick={(e) => deleteSearch(e, search.id)}
                                 className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-text-muted hover:text-accent-coral hover:bg-accent-coral/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
