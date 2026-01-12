@@ -3,14 +3,26 @@ import * as knowledgeService from "../api/knowledge";
 import * as chatApi from "../api/chat";
 import DashboardSidebar from "./dashboard/DashboardSidebar";
 import KnowledgeTable from "./dashboard/KnowledgeTable";
+import EditorCanvas from "./dashboard/EditorCanvas";
 import NotePopup from "./dashboard/NotePopup";
 
 export default function Dashboard({ token, handleLogout, username }) {
     const [sources, setSources] = useState([]);
     const [filter, setFilter] = useState("");
     const [isChatOpen, setIsChatOpen] = useState(false);
-    const [chatWidth, setChatWidth] = useState(450);
+    const [chatWidth, setChatWidth] = useState(() => {
+        const saved = localStorage.getItem("dashboard_chat_width");
+        return saved ? parseInt(saved, 10) : 450;
+    });
+    
+    useEffect(() => {
+        localStorage.setItem("dashboard_chat_width", chatWidth);
+    }, [chatWidth]);
+
     const [isResizing, setIsResizing] = useState(false);
+
+    // View state
+    const [viewMode, setViewMode] = useState('sources'); // 'sources' or 'canvas'
 
     // Tag edit state
     const [editingId, setEditingId] = useState(null);
@@ -218,7 +230,7 @@ export default function Dashboard({ token, handleLogout, username }) {
 
     return (
         <div className="h-screen bg-background flex overflow-hidden">
-            <main className="flex-1 flex gap-10 items-start w-full h-full pt-24">
+            <main className="flex-1 flex items-start w-full h-full pt-24">
                 <DashboardSidebar
                     isHistoryOpen={isHistoryOpen}
                     setIsHistoryOpen={setIsHistoryOpen}
@@ -234,31 +246,49 @@ export default function Dashboard({ token, handleLogout, username }) {
                     isResizing={isResizing}
                     setIsResizing={setIsResizing}
                     loadConversations={loadConversations}
+                    viewMode={viewMode}
+                    setViewMode={setViewMode}
                 />
 
-                <KnowledgeTable
-                    sources={sources}
-                    filter={filter}
-                    setFilter={setFilter}
-                    selectedTags={selectedTags}
-                    setSelectedTags={setSelectedTags}
-                    showFavorites={showFavorites}
-                    setShowFavorites={setShowFavorites}
-                    allTags={allTags}
-                    toggleTagSelect={toggleTagSelect}
-                    deletingId={deletingId}
-                    undoDelete={undoDelete}
-                    undoState={undoState}
-                    toggleFavorite={toggleFavorite}
-                    removeSource={removeSource}
-                    openNote={openNote}
-                    addTag={addTag}
-                    removeTag={removeTag}
-                    editingId={editingId}
-                    setEditingId={setEditingId}
-                    tagInput={tagInput}
-                    setTagInput={setTagInput}
-                />
+                {/* Resize Handle / Spacer */}
+                <div
+                    className="w-8 h-full flex flex-col justify-center items-center cursor-ew-resize group/resizer transition-colors shrink-0"
+                    onMouseDown={(e) => {
+                        e.preventDefault();
+                        setIsResizing(true);
+                        document.body.style.cursor = 'ew-resize';
+                    }}
+                >
+                    <div className="w-1 h-8 bg-border rounded-full group-hover/resizer:bg-primary transition-colors" />
+                </div>
+
+                {viewMode === 'sources' ? (
+                    <KnowledgeTable
+                        sources={sources}
+                        filter={filter}
+                        setFilter={setFilter}
+                        selectedTags={selectedTags}
+                        setSelectedTags={setSelectedTags}
+                        showFavorites={showFavorites}
+                        setShowFavorites={setShowFavorites}
+                        allTags={allTags}
+                        toggleTagSelect={toggleTagSelect}
+                        deletingId={deletingId}
+                        undoDelete={undoDelete}
+                        undoState={undoState}
+                        toggleFavorite={toggleFavorite}
+                        removeSource={removeSource}
+                        openNote={openNote}
+                        addTag={addTag}
+                        removeTag={removeTag}
+                        editingId={editingId}
+                        setEditingId={setEditingId}
+                        tagInput={tagInput}
+                        setTagInput={setTagInput}
+                    />
+                ) : (
+                    <EditorCanvas />
+                )}
 
                 <NotePopup
                     activeNote={activeNote}
