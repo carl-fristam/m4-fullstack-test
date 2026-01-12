@@ -22,9 +22,34 @@ It's a full-stack web app that combines:
 *   **Database**: MongoDB (Metadata) + Local Vector Store (Embeddings)
 
 ## Setup
-1.  Clone it.
-2.  Add your keys to `backend/.env` (`ANTHROPIC_API_KEY`, `EXA_API_KEY`, `SECRET_KEY`).
-3.  Run it:
-    ```bash
-    docker-compose up --build
-    ```
+
+### Prerequisites
+- [Docker](https://docs.docker.com/get-docker/) and Docker Compose
+- [Anthropic API key](https://console.anthropic.com/)
+- [Exa API key](https://exa.ai/)
+
+### Installation
+1. Clone the repo:
+   ```bash
+   git clone https://github.com/yourusername/ai-thesis-research-platform.git
+   cd ai-thesis-research-platform
+   ```
+
+2. Create your environment file:
+   ```bash
+   cp backend/.env.example backend/.env
+   ```
+
+3. Generate a secret key and add it to `backend/.env`:
+   ```bash
+   python3 -c "import secrets; print(secrets.token_hex(32))"
+   ```
+
+4. Add your API keys to `backend/.env`
+
+5. Run it:
+   ```bash
+   docker-compose up --build
+   ```
+
+6. Open http://localhost:5173
